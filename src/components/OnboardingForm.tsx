@@ -19,13 +19,14 @@ export default function OnboardingForm() {
       data: {
         business: String(f.get("business") ?? "").trim(),
         target: String(f.get("target") ?? "").trim(),
+        location: String(f.get("location") ?? "").trim(),
       },
     });
     if (error) {
       setBusy(false);
       return setError(error.message);
     }
-    router.replace("/campaigns");
+    router.replace("/swipe");
     router.refresh();
   }
 
@@ -45,6 +46,11 @@ export default function OnboardingForm() {
           className="input"
           placeholder="We run Google & Meta ads for dental clinics. Typical client gets 20-40 new patient bookings a month."
         />
+      </div>
+      <div>
+        <label className="label">Where is your business based?</label>
+        <input name="location" required className="input" placeholder="Manchester, UK" />
+        <p className="mt-1 text-xs text-zinc-500">Town or city, then country. Used for the Local filter.</p>
       </div>
       <div>
         <label className="label">

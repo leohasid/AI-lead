@@ -1,20 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
+import { isOnboarded } from "@/lib/profile";
 import { requireUser } from "@/lib/supabase/server";
 import type { Notification } from "@/lib/types";
 
 const NAV = [
   ["/swipe", "Swipe"],
   ["/pipeline", "Pipeline"],
-  ["/campaigns", "Campaigns"],
 ] as const;
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { supabase, user } = await requireUser();
   if (!user) redirect("/login");
   // First sign-in: ask what the business does before anything else.
-  if (!user.user_metadata?.business) redirect("/onboarding");
+  if (!isOnboarded(user)) redirect("/onboarding");
 
   const { data: notifications } = await supabase
     .from("notifications")

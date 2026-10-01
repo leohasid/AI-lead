@@ -2,9 +2,9 @@
 
 Lead generation for agencies, with a Tinder-style swipe screen.
 
-1. **Campaign.** Say who you want to reach (titles, locations, company size, keywords) and what you sell.
-2. **Swipe.** Matching decision-makers come from Apollo (which includes LinkedIn profile data). Swipe right to reach out, left to skip.
-3. **AI outreach.** On a right swipe, the app looks up the person's verified work email and Claude writes a short, personal first email. It's either sent right away (auto-send) or saved as a draft for you to review.
+1. **Onboarding.** Say what your business does, where you're based and (optionally) which kinds of business you want to reach.
+2. **Swipe.** Businesses appear as cards, Tinder-style: swipe right for yes, left for no. Filter by **Best match** (ranked by fit with your business), **Local** (near you) or **Not local**.
+3. **AI outreach.** On a right swipe, the app looks up the decision-maker's verified work email and Claude writes a short, personal first email, saved as a draft for you to review.
 4. **Replies.** Replies come back through Resend. Claude sorts each one (interested / question / not interested / unsubscribe / out-of-office), updates the pipeline and notifies you in the app (live bell + toast) and by email.
 
 ## Stack
@@ -28,7 +28,7 @@ npm run dev
    - Add a webhook for `email.received` pointing to `https://<your-app>/api/webhooks/resend`, and put its signing secret in `RESEND_WEBHOOK_SECRET`.
    - Set `NOTIFY_FROM_EMAIL` to get email alerts as well as in-app ones.
 
-**Try the full flow without email set up:** create a campaign, swipe right, open the lead, send the draft, then use **"Simulate a reply"** at the bottom of the conversation. Claude will classify the reply and the notification bell will light up.
+**Try the full flow without email set up:** finish onboarding, swipe right, open the lead, send the draft, then use **"Simulate a reply"** at the bottom of the conversation. Claude will classify the reply and the notification bell will light up.
 
 ## Where things live
 
@@ -36,7 +36,9 @@ npm run dev
 |---|---|
 | Lead lifecycle (enrich → draft → send → reply triage → notify) | [src/lib/pipeline.ts](src/lib/pipeline.ts) |
 | Claude prompts (outreach writer, reply classifier) | [src/lib/ai.ts](src/lib/ai.ts) |
+| Lead sources (add LinkedIn, Google, social here) | [src/lib/sources.ts](src/lib/sources.ts) |
 | Apollo search/enrichment + demo leads | [src/lib/apollo.ts](src/lib/apollo.ts) |
+| Profile, filters and "best match" scoring | [src/lib/profile.ts](src/lib/profile.ts) |
 | Sending, reply-address matching | [src/lib/email.ts](src/lib/email.ts) |
 | Swipe UI | [src/components/SwipeDeck.tsx](src/components/SwipeDeck.tsx) |
 | Inbound webhook | [src/app/api/webhooks/resend/route.ts](src/app/api/webhooks/resend/route.ts) |

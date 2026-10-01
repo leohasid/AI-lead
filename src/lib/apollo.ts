@@ -1,5 +1,5 @@
 import "server-only";
-import type { Campaign } from "./types";
+import type { LeadQuery } from "./sources";
 
 // Apollo.io lead source.
 // - People search (/mixed_people/api_search) is credit-free but returns partial
@@ -82,19 +82,21 @@ function toLead(p: ApolloPerson): LeadDraft {
   };
 }
 
-export async function searchPeople(campaign: Campaign, page = 1): Promise<LeadDraft[]> {
-  if (!apolloEnabled()) return demoLeads(campaign, page);
+export async function searchPeople(query: LeadQuery): Promise<LeadDraft[]> {
+  if (!apolloEnabled()) return demoLeads(query);
 
   const data = await apollo<{ people?: ApolloPerson[] }>("/mixed_people/api_search", {
-    person_titles: campaign.titles,
-    person_locations: campaign.locations,
-    q_keywords: campaign.keywords || undefined,
-    organization_num_employees_ranges: campaign.employee_ranges,
-    page,
+    person_titles: DECISION_MAKERS,
+    person_locations: query.location ? [query.location] : undefined,
+    q_keywords: query.keywords || undefined,
+    page: query.page,
     per_page: 25,
   });
   return (data.people ?? []).map(toLead);
 }
+
+// We swipe on businesses, so reach the person who can say yes.
+const DECISION_MAKERS = ["Owner", "Founder", "Co-Founder", "CEO", "Managing Director", "Director"];
 
 /** Reveal full profile + work email for one person. Costs an Apollo credit. */
 export async function enrichPerson(externalId: string): Promise<LeadDraft | null> {
@@ -141,24 +143,25 @@ const COMPANIES = [
   ["Atlas Legal Group", "atlaslegal.com", "Law Practice"],
 ];
 
-function demoLeads(campaign: Campaign, page: number): LeadDraft[] {
-  const titles = campaign.titles.length ? campaign.titles : ["Founder", "CEO", "Marketing Director"];
-  const locations = campaign.locations.length ? campaign.locations : ["Austin, TX", "Miami, FL", "London, UK"];
+const ELSEWHERE = ["Austin, TX, US", "Miami, FL, US", "London, UK", "Leeds, UK", "Bristol, UK", "Dublin, Ireland"];
+
+function demoLeads(query: LeadQuery): LeadDraft[] {
   return Array.from({ length: 10 }, (_, i) => {
-    const n = (page - 1) * 10 + i;
+    const n = (query.page - 1) * 10 + i;
     const [company, domain, industry] = COMPANIES[n % COMPANIES.length];
-    const first = FIRST[n % FIRST.length];
-    const last = LAST[(n * 3) % LAST.length];
+    const title = DECISION_MAKERS[n % DECISION_MAKERS.length];
+    // Local searches stay in the user's area; the rest are spread out (with a few local ones mixed in).
+    const location = query.location ?? (n % 4 === 0 && query.home ? query.home : ELSEWHERE[n % ELSEWHERE.length]);
     return {
-      external_id: `demo-${campaign.id.slice(0, 8)}-${n}`,
-      first_name: first,
-      last_name: last,
-      title: titles[n % titles.length],
-      headline: `${titles[n % titles.length]} at ${company}`,
+      external_id: `demo-${query.location ? "local" : "any"}-${n}`,
+      first_name: FIRST[n % FIRST.length],
+      last_name: LAST[(n * 3) % LAST.length],
+      title,
+      headline: `${title} at ${company}`,
       company,
       company_domain: domain,
       industry,
-      location: locations[n % locations.length],
+      location,
       linkedin_url: null,
       photo_url: null,
     };

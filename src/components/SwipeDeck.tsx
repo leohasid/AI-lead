@@ -4,7 +4,8 @@ import { AnimatePresence, motion, useMotionValue, useTransform, type PanInfo } f
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import type { Campaign, Lead } from "@/lib/types";
+import type { Reach } from "@/lib/profile";
+import type { Lead } from "@/lib/types";
 
 type Activity = { id: string; name: string; state: "working" | "done" | "no_email" | "error"; detail?: string };
 
@@ -14,7 +15,9 @@ function fullName(l: Lead) {
   return [l.first_name, l.last_name].filter(Boolean).join(" ") || "Unknown";
 }
 
-export default function SwipeDeck({ campaign, initialLeads }: { campaign: Campaign; initialLeads: Lead[] }) {
+const businessName = (l: Lead) => l.company || fullName(l);
+
+export default function SwipeDeck({ reach, initialLeads }: { reach: Reach; initialLeads: Lead[] }) {
   const router = useRouter();
   const [leads, setLeads] = useState(initialLeads);
   const [exitDir, setExitDir] = useState<"left" | "right">("right");
@@ -33,7 +36,7 @@ export default function SwipeDeck({ campaign, initialLeads }: { campaign: Campai
 
       // Right swipes take a few seconds (email lookup + AI draft); run in the background.
       if (direction === "right") {
-        setActivity((a) => [{ id: lead.id, name: fullName(lead), state: "working" as const }, ...a].slice(0, 6));
+        setActivity((a) => [{ id: lead.id, name: businessName(lead), state: "working" as const }, ...a].slice(0, 6));
       }
       fetch(`/api/leads/${lead.id}/swipe`, {
         method: "POST",
@@ -73,11 +76,15 @@ export default function SwipeDeck({ campaign, initialLeads }: { campaign: Campai
   async function findMore() {
     setFinding(true);
     setFindError("");
-    const res = await fetch(`/api/campaigns/${campaign.id}/find-leads`, { method: "POST" });
+    const res = await fetch("/api/leads/find", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reach }),
+    });
     const json = await res.json();
     setFinding(false);
     if (!res.ok) return setFindError(json.error ?? "Search failed");
-    if (json.added === 0) return setFindError("No new matches. Try widening the campaign's targeting.");
+    if (json.added === 0) return setFindError("No new businesses found for this filter. Try another one.");
     router.refresh();
   }
 
@@ -94,10 +101,10 @@ export default function SwipeDeck({ campaign, initialLeads }: { campaign: Campai
               animate={{ opacity: 1 }}
               className="card absolute inset-0 flex flex-col items-center justify-center p-8 text-center"
             >
-              <div className="text-lg font-medium">You&apos;re all caught up</div>
-              <p className="mt-2 text-sm text-zinc-400">Pull the next batch of people matching “{campaign.name}”.</p>
+              <div className="text-lg font-medium">{finding ? "Finding businesses…" : "You’re all caught up"}</div>
+              <p className="mt-2 text-sm text-zinc-400">Load the next batch of businesses for you to swipe on.</p>
               <button onClick={findMore} disabled={finding} className="btn-primary mt-6">
-                {finding ? "Searching…" : "Find more leads"}
+                {finding ? "Searching…" : "Find more businesses"}
               </button>
               {findError && <p className="mt-3 text-sm text-amber-300">{findError}</p>}
             </motion.div>
@@ -110,7 +117,7 @@ export default function SwipeDeck({ campaign, initialLeads }: { campaign: Campai
           <button
             onClick={() => swipe("left")}
             className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 text-2xl text-rose-400 hover:bg-rose-500/10"
-            aria-label="Skip"
+            aria-label="No"
           >
             ✕
           </button>
@@ -118,7 +125,7 @@ export default function SwipeDeck({ campaign, initialLeads }: { campaign: Campai
           <button
             onClick={() => swipe("right")}
             className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 text-2xl text-emerald-400 hover:bg-emerald-500/10"
-            aria-label="Reach out"
+            aria-label="Yes"
           >
             ♥
           </button>
@@ -172,7 +179,14 @@ function Card({
     else if (info.offset.x < -SWIPE_THRESHOLD) onSwipe("left");
   }
 
-  const initials = [lead.first_name?.[0], lead.last_name?.[0]].filter(Boolean).join("");
+  const name = businessName(lead);
+  const initials = name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+  const contact = lead.company ? [fullName(lead), lead.title].filter(Boolean).join(" · ") : lead.title;
 
   return (
     <motion.div
@@ -190,37 +204,26 @@ function Card({
         style={{ opacity: likeOpacity }}
         className="absolute left-5 top-5 z-10 -rotate-12 rounded-lg border-2 border-emerald-400 px-3 py-1 text-lg font-bold text-emerald-400"
       >
-        REACH OUT
+        YES
       </motion.div>
       <motion.div
         style={{ opacity: nopeOpacity }}
         className="absolute right-5 top-5 z-10 rotate-12 rounded-lg border-2 border-rose-400 px-3 py-1 text-lg font-bold text-rose-400"
       >
-        SKIP
+        NO
       </motion.div>
 
       <div className="flex h-48 items-center justify-center bg-gradient-to-br from-violet-600/40 via-fuchsia-500/20 to-transparent">
-        {lead.photo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={lead.photo_url} alt="" className="h-28 w-28 rounded-full object-cover ring-4 ring-black/30" draggable={false} />
-        ) : (
-          <div className="flex h-28 w-28 items-center justify-center rounded-full bg-black/30 text-3xl font-semibold">
-            {initials || "?"}
-          </div>
-        )}
+        <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-black/30 text-3xl font-semibold">
+          {initials || "?"}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col p-6">
-        <h2 className="text-2xl font-semibold">{fullName(lead)}</h2>
-        <p className="mt-1 text-zinc-300">
-          {lead.title}
-          {lead.company && <span className="text-zinc-400"> · {lead.company}</span>}
-        </p>
-        {lead.headline && lead.headline !== lead.title && (
-          <p className="mt-3 line-clamp-2 text-sm text-zinc-400">{lead.headline}</p>
-        )}
+        <h2 className="text-2xl font-semibold">{name}</h2>
+        {lead.industry && <p className="mt-1 text-zinc-300">{lead.industry}</p>}
+        {contact && <p className="mt-3 text-sm text-zinc-400">Contact: {contact}</p>}
         <div className="mt-auto flex flex-wrap gap-2 text-xs">
-          {lead.industry && <span className="rounded-full bg-white/5 px-3 py-1 text-zinc-300">{lead.industry}</span>}
           {lead.location && <span className="rounded-full bg-white/5 px-3 py-1 text-zinc-300">{lead.location}</span>}
           {lead.company_domain && (
             <span className="rounded-full bg-white/5 px-3 py-1 text-zinc-300">{lead.company_domain}</span>
