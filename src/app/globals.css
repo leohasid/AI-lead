@@ -30,7 +30,7 @@ body {
   @apply btn border border-white/10 text-zinc-200 hover:bg-white/5;
 }
 @utility input {
-  @apply w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-base outline-none sm:text-sm placeholder:text-zinc-500 focus:border-violet-400;
+  @apply w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none placeholder:text-zinc-500 focus:border-violet-400;
 }
 @utility label {
   @apply mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-400;

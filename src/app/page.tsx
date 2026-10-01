@@ -9,8 +9,8 @@ const STEPS = [
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-20">
-      <nav className="mb-12 flex items-center sm:mb-20 justify-between">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-20">
+      <nav className="mb-20 flex items-center justify-between">
         <span className="text-lg font-semibold">
           Lead<span className="text-violet-400">Swipe</span>
         </span>
@@ -19,10 +19,10 @@ export default function Home() {
         </Link>
       </nav>
 
-      <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
+      <h1 className="max-w-3xl text-5xl font-semibold leading-tight tracking-tight sm:text-6xl">
         Find clients like you&apos;re picking a date.
       </h1>
-      <p className="mt-4 max-w-xl text-base text-zinc-400 sm:mt-6 sm:text-lg">
+      <p className="mt-6 max-w-xl text-lg text-zinc-400">
         LeadSwipe finds decision-makers that match your ideal client, lets you swipe through them, writes the
         outreach, and pings you the moment someone is interested.
       </p>
@@ -32,7 +32,7 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="mt-16 grid gap-4 sm:mt-24 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-24 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map(([title, body], i) => (
           <div key={title} className="card p-5">
             <div className="mb-3 text-sm font-mono text-violet-400">0{i + 1}</div>

@@ -31,7 +31,7 @@ export default function OnboardingForm() {
   }
 
   return (
-    <form onSubmit={submit} className="card w-full max-w-lg space-y-5 p-6 sm:p-8">
+    <form onSubmit={submit} className="card w-full max-w-lg space-y-5 p-8">
       <div>
         <h1 className="text-xl font-semibold">Tell us about your business</h1>
         <p className="mt-1 text-sm text-zinc-400">We use this to find the right leads and write your emails.</p>

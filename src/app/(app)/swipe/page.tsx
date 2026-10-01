@@ -43,7 +43,7 @@ export default async function SwipePage({ searchParams }: PageProps<"/swipe">) {
 
   return (
     <div className="flex flex-col items-center">
-      <nav className="mb-4 flex w-full max-w-md gap-1 rounded-xl border border-white/10 p-1 text-sm">
+      <nav className="mb-6 flex w-full max-w-md gap-1 rounded-xl border border-white/10 p-1 text-sm">
         {REACHES.map(([r, label]) => (
           <Link
             key={r}
