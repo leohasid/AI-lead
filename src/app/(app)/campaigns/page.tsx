@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/supabase/server";
 import type { Campaign } from "@/lib/types";
 
 export default async function CampaignsPage() {
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
   const { data } = await supabase.from("campaigns").select("*").order("created_at", { ascending: false });
   const campaigns = (data ?? []) as Campaign[];
 
@@ -40,7 +40,10 @@ export default async function CampaignsPage() {
       </section>
       <section className="card p-6">
         <h2 className="mb-4 font-semibold">New campaign</h2>
-        <CampaignForm />
+        <CampaignForm
+          defaultOffer={user?.user_metadata?.business ?? ""}
+          defaultKeywords={user?.user_metadata?.target ?? ""}
+        />
       </section>
     </div>
   );

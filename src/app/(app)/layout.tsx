@@ -13,6 +13,8 @@ const NAV = [
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { supabase, user } = await requireUser();
   if (!user) redirect("/login");
+  // First sign-in: ask what the business does before anything else.
+  if (!user.user_metadata?.business) redirect("/onboarding");
 
   const { data: notifications } = await supabase
     .from("notifications")

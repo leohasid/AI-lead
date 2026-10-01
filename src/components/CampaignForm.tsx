@@ -12,7 +12,7 @@ const SIZES = [
   ["1001,10000", "1k+"],
 ];
 
-export default function CampaignForm() {
+export default function CampaignForm({ defaultOffer = "", defaultKeywords = "" }: { defaultOffer?: string; defaultKeywords?: string }) {
   const router = useRouter();
   const [sizes, setSizes] = useState<string[]>(["1,10", "11,50"]);
   const [busy, setBusy] = useState(false);
@@ -67,7 +67,7 @@ export default function CampaignForm() {
       </div>
       <div>
         <label className="label">Keywords</label>
-        <input name="keywords" className="input" placeholder="dental clinic" />
+        <input name="keywords" className="input" placeholder="dental clinic" defaultValue={defaultKeywords} />
       </div>
       <div>
         <label className="label">Company size</label>
@@ -94,6 +94,7 @@ export default function CampaignForm() {
           required
           rows={3}
           className="input"
+          defaultValue={defaultOffer}
           placeholder="We run Google & Meta ads for dental clinics. Typical client gets 20-40 new patient bookings a month."
         />
       </div>
