@@ -49,8 +49,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6">
-      <form onSubmit={submit} className="card w-full max-w-sm p-8">
+    <main className="flex flex-1 items-center justify-center px-4 sm:px-6">
+      <form onSubmit={submit} className="card w-full max-w-sm p-6 sm:p-8">
         <h1 className="text-xl font-semibold">{mode === "signin" ? "Sign in to LeadSwipe" : "Create your account"}</h1>
         <p className="mt-1 text-sm text-zinc-400">
           {mode === "signin" ? "Use your email and password." : "Pick a password with at least 6 characters."}

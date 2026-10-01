@@ -90,7 +90,7 @@ export default function SwipeDeck({ reach, initialLeads }: { reach: Reach; initi
 
   return (
     <div className="flex w-full max-w-md flex-col items-center">
-      <div className="relative h-[460px] w-full">
+      <div className="relative h-[380px] w-full sm:h-[460px]">
         <AnimatePresence custom={exitDir}>
           {top ? (
             <Card key={top.id} lead={top} onSwipe={swipe} exitDir={exitDir} />
@@ -113,10 +113,10 @@ export default function SwipeDeck({ reach, initialLeads }: { reach: Reach; initi
       </div>
 
       {top && (
-        <div className="mt-6 flex items-center gap-6">
+        <div className="mt-4 flex items-center gap-6 sm:mt-6">
           <button
             onClick={() => swipe("left")}
-            className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 text-2xl text-rose-400 hover:bg-rose-500/10"
+            className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 text-2xl text-rose-400 sm:h-16 sm:w-16 hover:bg-rose-500/10"
             aria-label="No"
           >
             ✕
@@ -124,7 +124,7 @@ export default function SwipeDeck({ reach, initialLeads }: { reach: Reach; initi
           <span className="text-xs text-zinc-500">{leads.length} left · use ← →</span>
           <button
             onClick={() => swipe("right")}
-            className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 text-2xl text-emerald-400 hover:bg-emerald-500/10"
+            className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 text-2xl text-emerald-400 sm:h-16 sm:w-16 hover:bg-emerald-500/10"
             aria-label="Yes"
           >
             ♥
@@ -213,14 +213,14 @@ function Card({
         NO
       </motion.div>
 
-      <div className="flex h-48 items-center justify-center bg-gradient-to-br from-violet-600/40 via-fuchsia-500/20 to-transparent">
-        <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-black/30 text-3xl font-semibold">
+      <div className="flex h-32 shrink-0 items-center justify-center sm:h-48 bg-gradient-to-br from-violet-600/40 via-fuchsia-500/20 to-transparent">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-black/30 text-2xl sm:h-28 sm:w-28 sm:text-3xl font-semibold">
           {initials || "?"}
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-6">
-        <h2 className="text-2xl font-semibold">{name}</h2>
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <h2 className="text-xl font-semibold sm:text-2xl">{name}</h2>
         {lead.industry && <p className="mt-1 text-zinc-300">{lead.industry}</p>}
         {contact && <p className="mt-3 text-sm text-zinc-400">Contact: {contact}</p>}
         <div className="mt-auto flex flex-wrap gap-2 text-xs">

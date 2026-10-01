@@ -38,6 +38,12 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
+  // Already signed in: skip the landing and login pages.
+  if (user && (path === "/" || path.startsWith("/login"))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/swipe";
+    return NextResponse.redirect(url);
+  }
   return response;
 }
 

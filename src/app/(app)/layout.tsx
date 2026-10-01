@@ -25,13 +25,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-6 px-4">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 sm:gap-6">
           <Link href="/swipe" className="font-semibold">
             Lead<span className="text-violet-400">Swipe</span>
           </Link>
           <nav className="flex gap-1 text-sm">
             {NAV.map(([href, label]) => (
-              <Link key={href} href={href} className="rounded-lg px-3 py-1.5 text-zinc-300 hover:bg-white/5">
+              <Link key={href} href={href} className="rounded-lg px-2 py-1.5 text-zinc-300 sm:px-3 hover:bg-white/5">
                 {label}
               </Link>
             ))}
@@ -41,7 +41,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-4 sm:py-8">{children}</main>
     </div>
   );
 }
