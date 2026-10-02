@@ -127,7 +127,7 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
 
   return (
     <div className="flex w-full max-w-md flex-col items-center">
-      <div className="relative h-[clamp(430px,calc(100dvh-340px),560px)] w-full">
+      <div className="relative h-[clamp(330px,calc(100dvh-330px),560px)] w-full">
         {/* Stacked cards peeking out behind the top one */}
         {cards.length > 1 && (
           <>
@@ -156,7 +156,7 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
         </AnimatePresence>
       </div>
 
-      <div className="mt-5 flex items-center gap-5">
+      <div className="mt-5 flex items-center gap-5 [@media(max-height:720px)]:mt-3">
         <RoundButton onClick={undo} disabled={!lastSkipped} label="Undo last skip" className="h-14 w-14 border-white/15 text-zinc-300">
           <Undo2 size={24} />
         </RoundButton>
@@ -283,30 +283,34 @@ function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Directi
         NO
       </motion.div>
 
-      {/* Hero */}
-      <div className={`relative flex h-[38%] shrink-0 items-center justify-center bg-gradient-to-br ${scene(lead.industry ?? name)}`}>
+      {/* Hero: badges sit in their own row so they never cover the initials */}
+      <div className={`relative flex h-[38%] shrink-0 flex-col [@media(max-height:720px)]:h-auto bg-gradient-to-br ${scene(lead.industry ?? name)}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.25),transparent_55%)]" />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#14112a] to-transparent" />
-        <span className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-emerald-400/40 bg-black/50 px-3 py-1.5 text-sm font-medium backdrop-blur">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-          New Lead
-        </span>
-        {lead.industry && (
-          <span className="absolute right-4 top-4 flex max-w-[55%] items-center gap-1.5 rounded-full border border-white/20 bg-black/50 px-3 py-1.5 text-sm font-medium backdrop-blur">
-            <Building2 size={16} className="shrink-0" />
-            <span className="truncate">{lead.industry}</span>
+        <div className="relative flex items-start justify-between gap-2 p-4 [@media(max-height:720px)]:p-3">
+          <span className="flex shrink-0 items-center gap-2 rounded-full border border-emerald-400/40 bg-black/50 px-3 py-1.5 text-sm font-medium backdrop-blur">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            New Lead
           </span>
-        )}
-        <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-white/95 text-3xl font-bold text-violet-700 shadow-xl">
-          {initials || "?"}
+          {lead.industry && (
+            <span className="flex min-w-0 items-center gap-1.5 rounded-full border border-white/20 bg-black/50 px-3 py-1.5 text-sm font-medium backdrop-blur">
+              <Building2 size={16} className="shrink-0" />
+              <span className="truncate">{lead.industry}</span>
+            </span>
+          )}
+        </div>
+        <div className="relative flex min-h-0 flex-1 items-center justify-center pb-4 [@media(max-height:720px)]:pb-1">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-white/95 text-3xl font-bold text-violet-700 shadow-xl [@media(max-height:720px)]:h-14 [@media(max-height:720px)]:w-14 [@media(max-height:720px)]:rounded-2xl [@media(max-height:720px)]:text-xl">
+            {initials || "?"}
+          </div>
         </div>
       </div>
 
       {/* Details */}
-      <div className="flex flex-1 flex-col px-5 pb-4">
-        <h2 className="truncate text-[28px] font-bold leading-tight">{name}</h2>
+      <div className="flex flex-1 flex-col px-5 pb-4 [@media(max-height:720px)]:pb-3">
+        <h2 className="truncate text-[28px] font-bold leading-tight [@media(max-height:720px)]:text-2xl">{name}</h2>
         {contact && <p className="mt-1 text-zinc-300">{contact}</p>}
-        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-300">
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-300 [@media(max-height:720px)]:mt-1">
           {lead.location && (
             <span className="flex items-center gap-1.5">
               <MapPin size={16} className="text-zinc-400" />
@@ -323,7 +327,7 @@ function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Directi
         </p>
 
         {insight.tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2 [@media(max-height:720px)]:hidden">
             {insight.tags.slice(0, 4).map((t, i) => (
               <span
                 key={t}
@@ -335,15 +339,15 @@ function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Directi
           </div>
         )}
 
-        <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+        <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 [@media(max-height:720px)]:mt-2 [@media(max-height:720px)]:py-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-violet-300">
             <Sparkles size={16} className="fill-violet-400" />
             Why this lead?
           </div>
-          <p className="mt-1 line-clamp-2 text-sm leading-snug text-zinc-300">{insight.why}</p>
+          <p className="mt-1 line-clamp-2 text-sm leading-snug text-zinc-300 [@media(max-height:720px)]:line-clamp-1">{insight.why}</p>
         </div>
 
-        <div className="mt-auto grid grid-cols-3 divide-x divide-white/10 pt-3">
+        <div className="mt-auto grid shrink-0 grid-cols-3 divide-x divide-white/10 pt-3 [@media(max-height:720px)]:pt-2">
           <Stat Icon={Target} label="Match" value={insight.match} valueClass={matchColour} iconClass="text-emerald-400" />
           <Stat Icon={Clock} label="Added" value={timeAgo(lead.created_at)} />
           <Stat Icon={FileText} label="Source" value={insight.source} />

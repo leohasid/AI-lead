@@ -51,7 +51,7 @@ export default async function SwipePage({ searchParams }: PageProps<"/swipe">) {
 
   return (
     <div className="flex flex-col items-center">
-      <nav className="mb-5 flex w-full max-w-md gap-1 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5">
+      <nav className="mb-5 flex w-full max-w-md [@media(max-height:720px)]:mb-3 gap-1 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5">
         {TABS.map(({ href, label, Icon, reach: r }) => {
           const active = r === reach;
           return (
