@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0b0b10;
+  --background: #0b0a18;
   --foreground: #ececf1;
 }
 
@@ -13,7 +13,10 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(60rem 30rem at 50% -10%, rgb(124 58 237 / 0.18), transparent 70%),
+    var(--background);
+  background-attachment: fixed;
   color: var(--foreground);
 }
 

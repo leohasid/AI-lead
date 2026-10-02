@@ -70,18 +70,57 @@ function words(text: string) {
     .filter((w) => w.length > 2 && !STOP.has(w));
 }
 
-/** Rough fit score used to order the "Best match" deck. Higher is better. */
-export function fitScore(lead: Lead, profile: Profile) {
-  const about = words([lead.company, lead.industry, lead.headline].filter(Boolean).join(" "));
-  const target = new Set(words(profile.target));
-  const business = new Set(words(profile.business));
-  let score = 0;
-  for (const w of about) {
-    if (target.has(w)) score += 3;
-    else if (business.has(w)) score += 1;
-  }
-  if (lead.title && DECISION_MAKER.test(lead.title)) score += 2;
-  if (lead.company_domain) score += 1;
-  if (lead.linkedin_url) score += 1;
-  return score;
+/** What the swipe card shows about why a lead fits. */
+export type Insight = {
+  score: number;
+  match: "High" | "Medium" | "Low";
+  tags: string[];
+  why: string;
+  source: string;
+  local: boolean;
+};
+
+/** Rough fit score (orders the Discover deck) plus the reasons behind it. */
+export function leadInsight(lead: Lead, profile: Profile): Insight {
+  const about = new Set(words([lead.company, lead.industry, lead.headline].filter(Boolean).join(" ")));
+  const targetHits = words(profile.target).filter((w) => about.has(w));
+  const businessHits = words(profile.business).filter((w) => about.has(w) && !targetHits.includes(w));
+  const decisionMaker = Boolean(lead.title && DECISION_MAKER.test(lead.title));
+  const local = isLocal(lead, profile);
+
+  const score =
+    3 * new Set(targetHits).size +
+    new Set(businessHits).size +
+    (decisionMaker ? 2 : 0) +
+    (lead.company_domain ? 1 : 0) +
+    (lead.linkedin_url ? 1 : 0);
+
+  const tags = [
+    targetHits.length > 0 && "Target match",
+    decisionMaker && "Decision-maker",
+    local && "Local",
+    lead.company_domain && "Has website",
+    lead.linkedin_url && "On LinkedIn",
+  ].filter(Boolean) as string[];
+
+  const contact = [lead.first_name, lead.last_name].filter(Boolean).join(" ");
+  const reasons = [
+    targetHits.length > 0 && `Matches what you're targeting (${[...new Set(targetHits)].join(", ")})`,
+    decisionMaker && `${contact || "The contact"} is the ${lead.title}, so they can say yes`,
+    local && `Based near you in ${lead.location}`,
+  ].filter(Boolean) as string[];
+  const why = reasons.length
+    ? `${reasons.join(". ")}.`
+    : `A ${lead.industry ? `${lead.industry.toLowerCase()} ` : ""}business you could help.`;
+
+  return {
+    score,
+    match: score >= 6 ? "High" : score >= 3 ? "Medium" : "Low",
+    tags,
+    why,
+    source: lead.external_id?.startsWith("demo-") ? "Demo" : "Apollo",
+    local,
+  };
 }
+
+export const fitScore = (lead: Lead, profile: Profile) => leadInsight(lead, profile).score;

@@ -19,7 +19,7 @@ export default async function LeadPage({ params }: PageProps<"/leads/[id]">) {
     <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
       <aside className="card h-fit p-6">
         <Link href="/pipeline" className="text-xs text-zinc-400 hover:underline">
-          ← Pipeline
+          ← My Leads
         </Link>
         <h1 className="mt-3 text-xl font-semibold">{[l.first_name, l.last_name].filter(Boolean).join(" ")}</h1>
         <p className="text-sm text-zinc-300">

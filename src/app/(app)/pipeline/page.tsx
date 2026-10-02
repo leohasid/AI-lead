@@ -22,7 +22,12 @@ export default async function PipelinePage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-xl font-semibold">Pipeline</h1>
+      <h1 className="mb-2 text-2xl font-bold">My Leads</h1>
+      <p className="mb-6 text-sm text-zinc-400">
+        {leads.length === 0
+          ? "Businesses you say yes to show up here, from draft email to interested."
+          : "Every business you've said yes to, by stage."}
+      </p>
       <div className="grid gap-4 overflow-x-auto md:grid-cols-5">
         {COLUMNS.map((col) => {
           const items = leads.filter((l) => col.status.includes(l.status));
@@ -37,11 +42,10 @@ export default async function PipelinePage() {
                   <li key={l.id}>
                     <Link href={`/leads/${l.id}`} className="card block p-3 hover:bg-white/[0.06]">
                       <div className="text-sm font-medium">
-                        {[l.first_name, l.last_name].filter(Boolean).join(" ")}
+                        {l.company ?? [l.first_name, l.last_name].filter(Boolean).join(" ")}
                       </div>
                       <div className="text-xs text-zinc-400">
-                        {l.title}
-                        {l.company && ` · ${l.company}`}
+                        {[[l.first_name, l.last_name].filter(Boolean).join(" "), l.title].filter(Boolean).join(" · ")}
                       </div>
                       {l.ai_summary && <p className="mt-2 text-xs text-zinc-300">{l.ai_summary}</p>}
                       {col.status.length > 1 && (

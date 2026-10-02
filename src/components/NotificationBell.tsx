@@ -1,5 +1,6 @@
 "use client";
 
+import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -42,20 +43,17 @@ export default function NotificationBell({ userId, initial }: { userId: string; 
 
   return (
     <div className="relative">
-      <button onClick={toggle} className="relative rounded-lg p-2 hover:bg-white/5" aria-label="Notifications">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-        </svg>
-        {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-500 px-1 text-[10px] font-bold">
-            {unread}
-          </span>
-        )}
+      <button
+        onClick={toggle}
+        className="relative flex h-11 w-11 items-center justify-center rounded-full text-zinc-200 hover:bg-white/5"
+        aria-label={unread ? `Notifications (${unread} unread)` : "Notifications"}
+      >
+        <Bell size={24} />
+        {unread > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-violet-500 ring-2 ring-background" />}
       </button>
 
       {open && (
-        <div className="card absolute right-0 top-11 w-80 overflow-hidden bg-zinc-950 shadow-2xl">
+        <div className="card absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] overflow-hidden bg-zinc-950 shadow-2xl">
           {items.length === 0 ? (
             <p className="p-4 text-sm text-zinc-400">No notifications yet. You&apos;ll be pinged when leads reply.</p>
           ) : (
@@ -80,7 +78,7 @@ export default function NotificationBell({ userId, initial }: { userId: string; 
       {toast && (
         <Link
           href={toast.lead_id ? `/leads/${toast.lead_id}` : "/pipeline"}
-          className="card fixed bottom-6 right-6 z-50 block w-80 bg-zinc-900 p-4 shadow-2xl"
+          className="card fixed bottom-24 right-4 z-50 block w-80 max-w-[calc(100vw-2rem)] bg-zinc-900 p-4 shadow-2xl"
         >
           <div className="font-medium">{toast.title}</div>
           {toast.body && <div className="mt-1 text-sm text-zinc-400">{toast.body}</div>}
