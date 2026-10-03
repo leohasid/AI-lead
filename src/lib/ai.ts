@@ -148,7 +148,7 @@ Use real OpenStreetMap values (lowercase, underscores). Include close variants a
 
 export type LeadBrief = { id: string; name: string; type: string | null; about: string | null };
 
-export type Thesis = { fit: "strong" | "moderate" | "weak"; points: string[]; summary: string };
+export type Thesis = { about: string; fit: "strong" | "moderate" | "weak"; points: string[]; summary: string };
 
 /**
  * "Why this lead?" for a handful of swipe cards: what the user's business could
@@ -156,9 +156,10 @@ export type Thesis = { fit: "strong" | "moderate" | "weak"; points: string[]; su
  */
 export async function leadTheses(business: string, leads: LeadBrief[]): Promise<Record<string, Thesis>> {
   const { theses } = await jsonCall<{ theses: ({ id: string } & Thesis)[] }>(
-    `You help a business owner decide, at a glance, which prospects are worth contacting. For each prospect, work out how the owner's business could help them. Do not describe the prospect or repeat what their website says; the owner can already see who they are.
+    `You help a business owner decide, at a glance, which prospects are worth contacting. For each prospect, say in one line what they do, then work out how the owner's business could help them.
+- about: one plain sentence, at most 14 words, on what this business does and for whom. Write it yourself from their description; don't copy their marketing wording. With no description, say what a business of that type does.
 - fit: how well what the owner offers matches what this prospect likely needs: strong, moderate or weak.
-- points: 2 or 3 bullet points, each one specific thing the owner could do for this prospect, drawn from what the owner's business offers and how a business like the prospect's actually runs (its bookings, enquiries, admin, sales, staff, stock...). Each starts with a verb and must fit on one line of a phone screen: at most 6 words and 38 characters. No full stops.
+- points: 2 or 3 bullet points, each one specific thing the owner could do for this prospect, drawn from what the owner's business offers and how a business like the prospect's actually runs (its bookings, enquiries, admin, sales, staff, stock...). Each starts with a verb and must fit on one line of a phone screen: at most 5 words and 32 characters, counted strictly. No full stops.
 - summary: one sentence, at most 18 words: why the fit is what it is, and the best angle to open with. Don't restate the fit level.
 - Use the prospect's own description only to make the points specific. Never invent facts about them: no made-up problems, numbers or tools.
 - If the fit is weak, give fewer points and say so plainly in the summary rather than stretching.
@@ -182,11 +183,12 @@ ${leads
             type: "object",
             properties: {
               id: { type: "string" },
+              about: { type: "string" },
               fit: { type: "string", enum: ["strong", "moderate", "weak"] },
               points: { type: "array", items: { type: "string" } },
               summary: { type: "string" },
             },
-            required: ["id", "fit", "points", "summary"],
+            required: ["id", "about", "fit", "points", "summary"],
             additionalProperties: false,
           },
         },
@@ -199,6 +201,22 @@ ${leads
   return Object.fromEntries(
     theses
       .filter((t) => ids.has(t.id) && t.summary.trim())
-      .map((t) => [t.id, { fit: t.fit, points: t.points.map((p) => p.trim()).filter(Boolean).slice(0, 3), summary: t.summary.trim() }]),
+      .map((t) => [t.id, { about: t.about.trim(), fit: t.fit, points: t.points.map((p) => p.trim()).filter(Boolean).slice(0, 3), summary: t.summary.trim() }]),
   );
+}
+
+/** Whether Claude can be reached with the configured key, and if not, why (shown on the More page). */
+export async function aiStatus(): Promise<{ ok: boolean; detail: string }> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return { ok: false, detail: "ANTHROPIC_API_KEY is not set" };
+  if (key.startsWith("sk-ant-usr") && !process.env.ANTHROPIC_WORKSPACE_ID) {
+    return { ok: false, detail: "This is a personal key, so ANTHROPIC_WORKSPACE_ID must be set too" };
+  }
+  try {
+    // Listing models is free and proves the key (and workspace) are accepted.
+    await client.models.list({ limit: 1 });
+    return { ok: true, detail: "Writes lead reasoning and emails" };
+  } catch (e) {
+    return { ok: false, detail: e instanceof Anthropic.APIError ? `Claude rejected the key (${e.status})` : "Couldn't reach Claude" };
+  }
 }

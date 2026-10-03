@@ -47,6 +47,13 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
           </button>
         </div>
 
+        {insight.about && (
+          <section className="mt-4">
+            <h3 className="label">What they do</h3>
+            <p className="text-sm leading-relaxed text-zinc-100">{insight.about}</p>
+          </section>
+        )}
+
         <section className="mt-4 rounded-2xl border border-violet-400/30 bg-violet-500/10 p-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-violet-300">
             <Sparkles size={16} className="fill-violet-400" />

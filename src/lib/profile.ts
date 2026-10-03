@@ -103,18 +103,20 @@ function words(text: string) {
     .filter((w) => w.length > 2 && !STOP.has(w));
 }
 
-// AI's case for a lead is kept as plain text: "Strong fit", one "• point" per line, then the summary.
+// AI's case for a lead is kept as plain text: "Strong fit", "About: ...", one "• point" per line, then the summary.
 type Fit = "strong" | "moderate" | "weak";
 const FIT_LABEL: Record<Fit, Insight["match"]> = { strong: "High", moderate: "Medium", weak: "Low" };
 
-export const formatThesis = (t: { fit: Fit; points: string[]; summary: string }) =>
-  [`${t.fit[0].toUpperCase()}${t.fit.slice(1)} fit`, ...t.points.map((p) => `• ${p}`), t.summary].join("\n");
+export const formatThesis = (t: { about: string; fit: Fit; points: string[]; summary: string }) =>
+  [`${t.fit[0].toUpperCase()}${t.fit.slice(1)} fit`, `About: ${t.about}`, ...t.points.map((p) => `• ${p}`), t.summary].join("\n");
 
 export function parseThesis(text: string) {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const fit = lines[0]?.match(/^(strong|moderate|weak) fit$/i)?.[1].toLowerCase() as Fit | undefined;
-  const rest = fit ? lines.slice(1) : lines;
+  const about = lines.find((l) => l.startsWith("About: "))?.slice(7) ?? null;
+  const rest = (fit ? lines.slice(1) : lines).filter((l) => !l.startsWith("About: "));
   return {
+    about,
     match: fit ? FIT_LABEL[fit] : null,
     points: rest.filter((l) => l.startsWith("• ")).map((l) => l.slice(2)),
     summary: rest.filter((l) => !l.startsWith("• ")).join(" "),
@@ -126,6 +128,7 @@ export type Insight = {
   score: number;
   match: "High" | "Medium" | "Low";
   tags: string[];
+  about: string | null; // one line on what the business does (AI)
   points: string[]; // how the user could help this business (AI); empty until AI has looked at it
   why: string; // one-line verdict
   ai: boolean; // points and why are AI's reasoning, not the rule-of-thumb fallback
@@ -182,6 +185,7 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     // AI's verdict when it has one; otherwise the rule-of-thumb score.
     match: thesis?.match ?? (score >= 6 ? "High" : score >= 3 ? "Medium" : "Low"),
     tags,
+    about: thesis?.about ?? null,
     points: thesis?.points ?? [],
     why,
     ai: Boolean(thesis),

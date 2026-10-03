@@ -103,13 +103,13 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
       body: JSON.stringify({ ids }),
     })
       .then((res) => res.json())
-      .then((json: { available?: boolean; theses?: Record<string, { match: Insight["match"]; points: string[]; summary: string }> }) => {
+      .then((json: { available?: boolean; theses?: Record<string, { match: Insight["match"]; about: string; points: string[]; summary: string }> }) => {
         if (!json.available) return setAiOff(true);
         const theses = json.theses ?? {};
         setCards((prev) =>
           prev.map((c) => {
             const t = theses[c.lead.id];
-            return t ? { ...c, insight: { ...c.insight, match: t.match, points: t.points, why: t.summary, ai: true } } : c;
+            return t ? { ...c, insight: { ...c.insight, match: t.match, about: t.about, points: t.points, why: t.summary, ai: true } } : c;
           }),
         );
       })
@@ -386,7 +386,12 @@ function Card({
             Details
           </button>
         </div>
-        {contact && <p className="mt-0.5 truncate text-zinc-300">{contact}</p>}
+        {/* What they do, once AI has worked it out; until then, their rating and phone. */}
+        {insight.about ? (
+          <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-zinc-300 [@media(max-height:720px)]:line-clamp-1">{insight.about}</p>
+        ) : (
+          contact && <p className="mt-0.5 truncate text-zinc-300">{contact}</p>
+        )}
         <div className="mt-1.5 space-y-1 text-sm text-zinc-300">
           {lead.location && (
             <p className="flex items-center gap-1.5">
@@ -427,7 +432,7 @@ function Card({
             <span className="ml-auto text-xs font-normal text-zinc-400">More ›</span>
           </span>
           {insight.points.length > 0 && (
-            <ul className="mt-1 space-y-0.5 text-sm leading-snug text-zinc-100">
+            <ul className="mt-1 space-y-0.5 text-[13px] leading-snug text-zinc-100">
               {insight.points.map((p) => (
                 <li key={p} className="flex gap-1.5">
                   <span className="text-violet-400">•</span>
