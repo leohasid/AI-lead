@@ -44,7 +44,19 @@ const AMENITIES =
   "dentist|doctors|clinic|veterinary|pharmacy|restaurant|cafe|bar|pub|fast_food|driving_school|childcare|car_rental|car_wash|coworking_space|estate_agent|studio";
 const LEISURE = "fitness_centre|sports_centre|dance|escape_game|bowling_alley";
 
-async function businessesAround({ lat, lon }: Coords, km: number): Promise<Element[]> {
+// Paging re-reads the same area, so keep each area's result for a few minutes.
+const areas = new Map<string, { at: number; elements: Element[] }>();
+
+async function businessesAround(centre: Coords, km: number): Promise<Element[]> {
+  const key = `${centre.lat},${centre.lon},${km}`;
+  const cached = areas.get(key);
+  if (cached && Date.now() - cached.at < 10 * 60_000) return cached.elements;
+  const elements = await queryOverpass(centre, km);
+  areas.set(key, { at: Date.now(), elements });
+  return elements;
+}
+
+async function queryOverpass({ lat, lon }: Coords, km: number): Promise<Element[]> {
   const around = `(around:${km * 1000},${lat},${lon})`;
   // Named, has a website, and not part of a chain ("brand" marks Tesco, Costa, etc).
   const base = `["name"][~"^(contact:)?website$"~"."][!"brand"]`;
