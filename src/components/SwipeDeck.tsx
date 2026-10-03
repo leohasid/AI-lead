@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useMotionValue, useTransform, type PanInfo } f
 import { Building2, Clock, FileText, Globe, Heart, Info, MapPin, Sparkles, Target, Undo2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import LeadDetails from "@/components/LeadDetails";
 import type { Insight, Reach } from "@/lib/profile";
 import type { Lead } from "@/lib/types";
@@ -52,6 +52,8 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
   const [finding, setFinding] = useState(false);
   const [findError, setFindError] = useState("");
   const [details, setDetails] = useState<CardData | null>(null);
+  const [aiOff, setAiOff] = useState(false);
+  const asked = useRef(new Set<string>());
 
   const top = cards[0];
 
@@ -88,6 +90,28 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
     },
     [cards],
   );
+
+  // Have AI reason about the next few cards whenever one near the top lacks it.
+  useEffect(() => {
+    const waiting = (c: CardData) => !c.insight.ai && !asked.current.has(c.lead.id);
+    if (aiOff || !cards.slice(0, 3).some(waiting)) return;
+    const ids = cards.slice(0, 8).filter(waiting).map((c) => c.lead.id);
+    ids.forEach((id) => asked.current.add(id));
+    fetch("/api/leads/insights", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    })
+      .then((res) => res.json())
+      .then((json: { available?: boolean; theses?: Record<string, string> }) => {
+        if (!json.available) return setAiOff(true);
+        const theses = json.theses ?? {};
+        setCards((prev) =>
+          prev.map((c) => (theses[c.lead.id] ? { ...c, insight: { ...c.insight, why: theses[c.lead.id], ai: true } } : c)),
+        );
+      })
+      .catch(() => setAiOff(true));
+  }, [cards, aiOff]);
 
   async function undo() {
     if (!lastSkipped) return;
@@ -189,7 +213,14 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
         </RoundButton>
       </div>
 
-      {details && <LeadDetails lead={details.lead} insight={details.insight} onClose={() => setDetails(null)} />}
+      {details && (
+        <LeadDetails
+          lead={details.lead}
+          // The card's reasoning may have been upgraded by AI since the sheet was opened.
+          insight={cards.find((c) => c.lead.id === details.lead.id)?.insight ?? details.insight}
+          onClose={() => setDetails(null)}
+        />
+      )}
 
       {activity && (
         <Link href={`/leads/${activity.id}`} className="mt-5 flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm">
@@ -333,8 +364,8 @@ function Card({
           <h2 className="min-w-0 flex-1 truncate text-[26px] font-bold leading-tight">{name}</h2>
           <button
             onClick={onDetails}
-            // Don't let a tap on the button start a card drag.
-            onPointerDown={(e) => e.stopPropagation()}
+            // Stop the press before it reaches the card, or a tap with any finger movement becomes a drag.
+            onPointerDownCapture={(e) => e.stopPropagation()}
             aria-label={`More about ${name}`}
             className="flex shrink-0 items-center gap-1 rounded-full border border-violet-400/50 bg-violet-500/15 px-2.5 py-1 text-xs font-medium text-violet-100"
           >
@@ -371,13 +402,19 @@ function Card({
           </div>
         )}
 
-        <div className="mt-2.5 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-violet-300">
+        <button
+          type="button"
+          onClick={onDetails}
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          className="mt-2.5 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left"
+        >
+          <span className="flex items-center gap-2 text-sm font-semibold text-violet-300">
             <Sparkles size={16} className="fill-violet-400" />
             Why this lead?
-          </div>
-          <p className="mt-1 line-clamp-2 text-sm leading-snug text-zinc-300">{insight.why}</p>
-        </div>
+            <span className="ml-auto text-xs font-normal text-zinc-400">Read more ›</span>
+          </span>
+          <span className="mt-1 line-clamp-2 block text-sm leading-snug text-zinc-300">{insight.why}</span>
+        </button>
 
         <div className="grid grid-cols-3 divide-x divide-white/10 pt-3">
           <Stat Icon={Target} label="Match" value={insight.match} valueClass={matchColour} iconClass="text-emerald-400" />

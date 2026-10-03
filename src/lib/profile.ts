@@ -109,6 +109,7 @@ export type Insight = {
   match: "High" | "Medium" | "Low";
   tags: string[];
   why: string;
+  ai: boolean; // `why` is AI's reasoning about this lead, not the rule-of-thumb fallback
   source: string;
   local: boolean;
 };
@@ -149,18 +150,20 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     targetHits.length > 0 && `Matches what you're targeting (${[...new Set(targetHits)].join(", ")})`,
     decisionMaker && `${contact || "The contact"} is the ${lead.title}, so they can say yes`,
     local && "Close to you",
-    established && `Rated ${stars} by ${reviews} customers, so an established business`,
     lead.email && "Has a public email you can contact",
   ].filter(Boolean) as string[];
-  const why = reasons.length
-    ? `${reasons.join(". ")}.`
-    : `A ${lead.industry ? `${lead.industry.toLowerCase()} ` : ""}business you could help.`;
+  // Before first contact, ai_summary holds AI's case for this lead (see /api/leads/insights).
+  const thesis = lead.status === "new" ? lead.ai_summary : null;
+  const why =
+    thesis ??
+    (reasons.length ? `${reasons.join(". ")}.` : `A ${lead.industry ? `${lead.industry.toLowerCase()} ` : ""}business you could help.`);
 
   return {
     score,
     match: score >= 6 ? "High" : score >= 3 ? "Medium" : "Low",
     tags,
     why,
+    ai: Boolean(thesis),
     source: lead.external_id?.startsWith("demo-") ? "Demo" : lead.external_id?.startsWith("osm-") ? "Map" : lead.external_id?.startsWith("gmaps-") ? "Google" : "Apollo",
     local,
   };

@@ -2,6 +2,7 @@
 
 import { ExternalLink, Globe, Map as MapIcon, MapPin, Phone, Sparkles, Star, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Insight } from "@/lib/profile";
 import type { Lead } from "@/lib/types";
 import type { WebsiteInfo } from "@/lib/website";
@@ -29,7 +30,8 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
   const phone = rating ? phoneAfterRating : !person ? lead.headline : null;
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${lead.location ?? ""}`)}`;
 
-  return (
+  // On <body>, so nothing on the page (bottom bar, card animations) can sit on top of it.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center" onClick={onClose}>
       <div
         role="dialog"
@@ -46,6 +48,15 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
             <X size={20} />
           </button>
         </div>
+
+        <section className="mt-4 rounded-2xl border border-violet-400/30 bg-violet-500/10 p-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-violet-300">
+            <Sparkles size={16} className="fill-violet-400" />
+            Why this lead?
+          </div>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-100">{insight.why}</p>
+        </section>
+
 
         <dl className="mt-4 space-y-2.5 text-sm text-zinc-200">
           {person && (
@@ -118,14 +129,6 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
           </section>
         )}
 
-        <section className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-violet-300">
-            <Sparkles size={16} className="fill-violet-400" />
-            Why this lead?
-          </div>
-          <p className="mt-1 text-sm leading-snug text-zinc-300">{insight.why}</p>
-        </section>
-
         <div className="mt-5 flex gap-3">
           <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn-ghost flex-1">
             <MapIcon size={16} />
@@ -139,7 +142,8 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
