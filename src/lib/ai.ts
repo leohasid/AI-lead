@@ -207,10 +207,10 @@ export type Thesis = { about: string; fit: "strong" | "moderate" | "weak"; point
 export async function leadTheses(business: string, leads: LeadBrief[]): Promise<Record<string, Thesis>> {
   const { theses } = await jsonCall<{ theses: ({ id: string } & Thesis)[] }>(
     `You help a business owner decide, at a glance, which prospects are worth contacting. For each prospect, say in one line what they do, then work out how the owner's business could help them.
-- about: one plain sentence, at most 14 words, on what this business does and for whom. Write it yourself from their description; don't copy their marketing wording. With no description, say what a business of that type does.
+- about: what this business does, summarised in your own words in at most 10 words. Never copy or quote their website or marketing wording. With no description, say what a business of that type does.
 - fit: how well what the owner offers matches what this prospect likely needs: strong, moderate or weak.
-- points: 2 or 3 bullet points, each one specific thing the owner could do for this prospect, drawn from what the owner's business offers and how a business like the prospect's actually runs (its bookings, enquiries, admin, sales, staff, stock...). Each starts with a verb and must fit on one line of a phone screen: at most 5 words and 32 characters, counted strictly. No full stops.
-- summary: one sentence, at most 18 words: why the fit is what it is, and the best angle to open with. Don't restate the fit level.
+- points: 2 or 3 bullet points, each one service the owner could provide to this prospect, drawn from what the owner's business offers and matched to what this prospect does and how a business like theirs actually runs (its bookings, enquiries, admin, sales, staff, stock...). Each starts with a verb and must fit on one line of a phone screen: at most 5 words and 32 characters, counted strictly. No full stops.
+- summary: one short sentence, at most 12 words: the best angle to open with. Don't restate the fit level.
 - Use the prospect's own description only to make the points specific. Never invent facts about them: no made-up problems, numbers or tools.
 - If the fit is weak, give fewer points and say so plainly in the summary rather than stretching.
 - Ratings, review counts, location and having a website are not reasons.

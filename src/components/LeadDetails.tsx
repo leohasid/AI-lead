@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink, Globe, Map as MapIcon, MapPin, Phone, Sparkles, Star, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Insight } from "@/lib/profile";
 import type { Lead } from "@/lib/types";
@@ -9,17 +9,21 @@ import type { WebsiteInfo } from "@/lib/website";
 
 // Full-screen sheet with everything known about one business, opened from its card.
 export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; insight: Insight; onClose: () => void }) {
-  // The business's own description is only fetched if asked for: the sheet's job is the quick case for the lead.
-  // "idle" = not asked yet, "loading" = reading the website, null = nothing could be read
-  const [website, setWebsite] = useState<WebsiteInfo | null | "idle" | "loading">("idle");
+  // The business's website is read only for the social profiles it links to;
+  // what they do is AI's short summary (insight.about), never their own copy.
+  const [socials, setSocials] = useState<WebsiteInfo["socials"]>([]);
 
-  function readTheirSite() {
-    setWebsite("loading");
+  useEffect(() => {
+    if (!lead.company_domain) return;
+    let current = true;
     fetch(`/api/leads/${lead.id}/details`)
       .then((res) => (res.ok ? res.json() : { website: null }))
-      .then((json) => setWebsite(json.website ?? null))
-      .catch(() => setWebsite(null));
-  }
+      .then((json) => current && setSocials(json.website?.socials ?? []))
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [lead.id, lead.company_domain]);
 
   const name = lead.company ?? [lead.first_name, lead.last_name].filter(Boolean).join(" ");
   const person = [lead.first_name, lead.last_name].filter(Boolean).join(" ");
@@ -57,7 +61,7 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
         <section className="mt-4 rounded-2xl border border-violet-400/30 bg-violet-500/10 p-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-violet-300">
             <Sparkles size={16} className="fill-violet-400" />
-            {insight.points.length ? "How you could help" : "Why this lead?"}
+            {insight.points.length ? "Services you could offer them" : "Why this lead?"}
           </div>
           {insight.points.length > 0 && (
             <ul className="mt-2 space-y-1.5 text-sm leading-snug text-zinc-100">
@@ -99,40 +103,11 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
           )}
         </dl>
 
-        {lead.company_domain && (
-          <section className="mt-5">
-            {website === "idle" ? (
-              <button type="button" onClick={readTheirSite} className="text-sm text-violet-300 underline decoration-violet-400/40">
-                What do they say about themselves?
-              </button>
-            ) : website === "loading" ? (
-              <p className="flex items-center gap-2 text-sm text-zinc-400" role="status">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
-                Reading their website…
-              </p>
-            ) : website && (website.description || website.about.length) ? (
-              <>
-                <h3 className="label">In their own words</h3>
-                <div className="space-y-3 text-sm leading-relaxed text-zinc-200">
-                  {website.description && <p className="font-medium text-white">{website.description}</p>}
-                  {website.about
-                    .filter((p) => p !== website.description)
-                    .map((p) => (
-                      <p key={p}>{p}</p>
-                    ))}
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-zinc-400">Their website didn&apos;t give a description we could read. Open it to see more.</p>
-            )}
-          </section>
-        )}
-
-        {website && typeof website === "object" && website.socials.length > 0 && (
+        {socials.length > 0 && (
           <section className="mt-5">
             <h3 className="label">Social media</h3>
             <div className="flex flex-wrap gap-2">
-              {website.socials.map((s) => (
+              {socials.map((s) => (
                 <a
                   key={s.name}
                   href={s.url}
