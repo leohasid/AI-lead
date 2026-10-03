@@ -3,6 +3,8 @@ import { fillDeck } from "@/lib/deck";
 import type { Reach } from "@/lib/profile";
 import { requireUser } from "@/lib/supabase/server";
 
+export const maxDuration = 60;
+
 // "Find more businesses" button: pulls the next page for one filter.
 export async function POST(req: Request) {
   const { supabase, user } = await requireUser();

@@ -92,6 +92,8 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     3 * new Set(targetHits).size +
     new Set(businessHits).size +
     (decisionMaker ? 2 : 0) +
+    (local ? 1 : 0) +
+    (lead.email ? 2 : 0) +
     (lead.company_domain ? 1 : 0) +
     (lead.linkedin_url ? 1 : 0);
 
@@ -99,6 +101,7 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     targetHits.length > 0 && "Target match",
     decisionMaker && "Decision-maker",
     local && "Local",
+    lead.email && "Email found",
     lead.company_domain && "Has website",
     lead.linkedin_url && "On LinkedIn",
   ].filter(Boolean) as string[];
@@ -107,7 +110,8 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
   const reasons = [
     targetHits.length > 0 && `Matches what you're targeting (${[...new Set(targetHits)].join(", ")})`,
     decisionMaker && `${contact || "The contact"} is the ${lead.title}, so they can say yes`,
-    local && `Based near you in ${lead.location}`,
+    local && "Close to you",
+    lead.email && "Lists a public contact email, so you can reach them straight away",
   ].filter(Boolean) as string[];
   const why = reasons.length
     ? `${reasons.join(". ")}.`
@@ -118,7 +122,7 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     match: score >= 6 ? "High" : score >= 3 ? "Medium" : "Low",
     tags,
     why,
-    source: lead.external_id?.startsWith("demo-") ? "Demo" : "Apollo",
+    source: lead.external_id?.startsWith("demo-") ? "Demo" : lead.external_id?.startsWith("osm-") ? "Map" : "Apollo",
     local,
   };
 }

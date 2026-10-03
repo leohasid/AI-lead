@@ -255,7 +255,9 @@ function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Directi
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-  const contact = lead.company ? [fullName(lead), lead.title].filter(Boolean).join(" • ") : lead.title;
+  // Person and job title when we know them; otherwise the business's phone number.
+  const person = [lead.first_name, lead.last_name].filter(Boolean).join(" ");
+  const contact = [lead.company ? person : "", lead.title].filter(Boolean).join(" • ") || (person ? "" : lead.headline);
   const matchColour = insight.match === "High" ? "text-emerald-400" : insight.match === "Medium" ? "text-amber-300" : "text-zinc-300";
 
   return (
@@ -310,14 +312,13 @@ function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Directi
       <div className="flex flex-1 flex-col px-5 pb-4 [@media(max-height:720px)]:pb-3">
         <h2 className="truncate text-[28px] font-bold leading-tight [@media(max-height:720px)]:text-2xl">{name}</h2>
         {contact && <p className="mt-1 text-zinc-300">{contact}</p>}
-        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-300 [@media(max-height:720px)]:mt-1">
+        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-300 [@media(max-height:720px)]:mt-1">
           {lead.location && (
             <span className="flex items-center gap-1.5">
               <MapPin size={16} className="text-zinc-400" />
               {lead.location}
             </span>
           )}
-          {lead.location && lead.company_domain && <span className="text-zinc-500">•</span>}
           {lead.company_domain && (
             <span className="flex items-center gap-1.5">
               <Globe size={16} className="text-zinc-400" />

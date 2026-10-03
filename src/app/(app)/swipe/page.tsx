@@ -12,6 +12,9 @@ const TABS = [
   { href: "/pipeline", label: "My Leads", Icon: Users, reach: null },
 ] as const;
 
+// Finding the first batch of businesses can take a few seconds.
+export const maxDuration = 60;
+
 export default async function SwipePage({ searchParams }: PageProps<"/swipe">) {
   const { view } = await searchParams;
   const reach: Reach = REACHES.some(([r]) => r === view) ? (view as Reach) : "best";
@@ -76,6 +79,9 @@ export default async function SwipePage({ searchParams }: PageProps<"/swipe">) {
         reach={reach}
         initialCards={cards.slice(0, 50)}
       />
+      {cards.some((c) => c.lead.external_id?.startsWith("osm-")) && (
+        <p className="mt-4 text-center text-[11px] text-zinc-500">Business data © OpenStreetMap contributors</p>
+      )}
     </div>
   );
 }

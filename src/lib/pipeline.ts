@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyReply, draftOutreach } from "./ai";
 import { enrichPerson } from "./apollo";
 import { composeBody, notifyByEmail, sendEmail } from "./email";
+import { findWebsiteEmail } from "./osm";
 import type { Campaign, Lead, LeadStatus, Message } from "./types";
 
 // The lead lifecycle:
@@ -40,7 +41,11 @@ export async function approveLead(db: SupabaseClient, lead: Lead): Promise<Lead>
   const campaign = await getCampaign(db, lead.campaign_id);
 
   let enriched: Lead = lead;
-  if (!lead.email && lead.external_id) {
+  if (!lead.email && lead.external_id?.startsWith("osm-")) {
+    // Map leads have no person to look up; use the contact email on the business's website.
+    const email = lead.company_domain ? await findWebsiteEmail(lead.company_domain) : null;
+    if (email) enriched = { ...lead, email };
+  } else if (!lead.email && lead.external_id) {
     const person = await enrichPerson(lead.external_id);
     if (person) {
       // Only overwrite fields the enrichment actually filled in.
