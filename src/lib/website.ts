@@ -72,10 +72,13 @@ export async function readWebsite(domain: string, quick = false): Promise<Websit
   if (!home) return null;
 
   let about = paragraphs(home);
-  // A thin homepage usually means the story is on the About page.
-  if (!quick && about.join(" ").length < 250) {
+  // A thin homepage usually means the story is on the About page. A quick read
+  // only goes there when the homepage gave nothing at all.
+  const thin = about.join(" ").length < 250;
+  const empty = !about.length && !meta(home, "description") && !meta(home, "og:description");
+  if (quick ? empty : thin) {
     for (const path of ["/about", "/about-us"]) {
-      const page = await fetchPage(`https://${domain}${path}`);
+      const page = await fetchPage(`https://${domain}${path}`, quick ? 4000 : 7000);
       const more = page ? paragraphs(page) : [];
       if (more.join(" ").length > about.join(" ").length) about = more;
       if (about.join(" ").length >= 250) break;

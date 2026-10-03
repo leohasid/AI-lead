@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
-import { Building2, Clock, FileText, Globe, Heart, Info, MapPin, Sparkles, Target, Undo2, X } from "lucide-react";
+import { Building2, Clock, FileText, Globe, Heart, MapPin, Sparkles, Target, Undo2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -103,13 +103,13 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
       body: JSON.stringify({ ids }),
     })
       .then((res) => res.json())
-      .then((json: { available?: boolean; theses?: Record<string, { match: Insight["match"]; about: string; points: string[]; summary: string }> }) => {
+      .then((json: { available?: boolean; theses?: Record<string, { match: Insight["match"]; about: string; focus: string[]; points: string[]; summary: string }> }) => {
         if (!json.available) return setAiOff(true);
         const theses = json.theses ?? {};
         setCards((prev) =>
           prev.map((c) => {
             const t = theses[c.lead.id];
-            return t ? { ...c, insight: { ...c.insight, match: t.match, about: t.about, points: t.points, why: t.summary, ai: true } } : c;
+            return t ? { ...c, insight: { ...c.insight, match: t.match, about: t.about, focus: t.focus, points: t.points, why: t.summary, ai: true } } : c;
           }),
         );
       })
@@ -373,19 +373,7 @@ function Card({
 
       {/* Details: always shown in full */}
       <div className="flex shrink-0 flex-col px-5 pb-4 pt-1">
-        <div className="flex items-center gap-2">
-          <h2 className="min-w-0 flex-1 truncate text-[26px] font-bold leading-tight">{name}</h2>
-          <button
-            onClick={onDetails}
-            // Stop the press before it reaches the card, or a tap with any finger movement becomes a drag.
-            onPointerDownCapture={(e) => e.stopPropagation()}
-            aria-label={`More about ${name}`}
-            className="flex shrink-0 items-center gap-1 rounded-full border border-violet-400/50 bg-violet-500/15 px-2.5 py-1 text-xs font-medium text-violet-100"
-          >
-            <Info size={14} />
-            Details
-          </button>
-        </div>
+        <h2 className="truncate text-[26px] font-bold leading-tight">{name}</h2>
         {/* What they do, once AI has worked it out; until then, their rating and phone. */}
         {insight.about ? (
           <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-zinc-300 [@media(max-height:720px)]:line-clamp-1">{insight.about}</p>
@@ -399,15 +387,27 @@ function Card({
               <span className="truncate">{lead.location}</span>
             </p>
           )}
-          {lead.company_domain && (
-            <p className="flex items-center gap-1.5">
-              <Globe size={16} className="shrink-0 text-zinc-400" />
-              <span className="truncate">{lead.company_domain}</span>
+          {/* Once AI knows the business's specialisms they take the website's place (it's in the details sheet). */}
+          {insight.focus.length > 0 ? (
+            <p className="flex h-[26px] flex-wrap gap-1.5 overflow-hidden pt-0.5">
+              {insight.focus.map((f) => (
+                <span key={f} className="rounded-full border border-violet-400/40 bg-violet-500/15 px-2.5 py-0.5 text-xs text-violet-100">
+                  {f}
+                </span>
+              ))}
             </p>
+          ) : (
+            lead.company_domain && (
+              <p className="flex items-center gap-1.5">
+                <Globe size={16} className="shrink-0 text-zinc-400" />
+                <span className="truncate">{lead.company_domain}</span>
+              </p>
+            )
           )}
         </div>
 
-        {insight.tags.length > 0 && (
+        {/* Generic tags only until AI's specialism chips (above) are in. */}
+        {insight.tags.length > 0 && insight.focus.length === 0 && (
           <div className={`mt-2.5 flex h-7 flex-wrap gap-2 overflow-hidden [@media(max-height:720px)]:hidden ${insight.points.length ? "[@media(max-height:820px)]:hidden" : ""}`}>
             {insight.tags.slice(0, 4).map((t, i) => (
               <span

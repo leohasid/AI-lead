@@ -69,6 +69,15 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
           <section className="mt-4">
             <h3 className="label">What they do</h3>
             <p className="text-sm leading-relaxed text-zinc-100">{insight.about}</p>
+            {insight.focus.length > 0 && (
+              <p className="mt-2 flex flex-wrap gap-1.5">
+                {insight.focus.map((f) => (
+                  <span key={f} className="rounded-full border border-violet-400/40 bg-violet-500/15 px-2.5 py-0.5 text-xs text-violet-100">
+                    {f}
+                  </span>
+                ))}
+              </p>
+            )}
           </section>
         )}
 

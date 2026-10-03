@@ -27,7 +27,8 @@ export async function POST(req: Request) {
     id: l.id,
     name: l.company ?? [l.first_name, l.last_name].filter(Boolean).join(" "),
     type: l.industry,
-    about: [sites[i]?.description, ...(sites[i]?.about ?? [])].filter(Boolean).join(" ").slice(0, 700) || null,
+    // Enough of their own words for AI to see what sets this business apart from others like it.
+    about: [sites[i]?.title, sites[i]?.description, ...(sites[i]?.about ?? [])].filter(Boolean).join(" ").slice(0, 1800) || null,
   }));
 
   let theses: Record<string, Thesis>;

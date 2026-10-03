@@ -198,7 +198,7 @@ export async function suggestTargets(business: string): Promise<{ terms: string[
 
 export type LeadBrief = { id: string; name: string; type: string | null; about: string | null };
 
-export type Thesis = { about: string; fit: "strong" | "moderate" | "weak"; points: string[]; summary: string };
+export type Thesis = { about: string; focus: string[]; fit: "strong" | "moderate" | "weak"; points: string[]; summary: string };
 
 /**
  * "Why this lead?" for a handful of swipe cards: what the user's business could
@@ -207,9 +207,10 @@ export type Thesis = { about: string; fit: "strong" | "moderate" | "weak"; point
 export async function leadTheses(business: string, leads: LeadBrief[]): Promise<Record<string, Thesis>> {
   const { theses } = await jsonCall<{ theses: ({ id: string } & Thesis)[] }>(
     `You help a business owner decide, at a glance, which prospects are worth contacting. For each prospect, say in one line what they do, then work out how the owner's business could help them.
-- about: what this business does, summarised in your own words in at most 10 words. Never copy or quote their website or marketing wording. With no description, say what a business of that type does.
+- about: what this particular business does, in your own words, in at most 16 words. Lead with what makes it different from others of its type: its specialisms, who it serves, its size or how it works. "Law firm handling legal cases" is useless; "Immigration and family law firm for South Asian families, with evening appointments" is right. Never copy or quote their marketing wording. With no description, just name the kind of business plainly (e.g. "Solicitors' practice in Manchester"); don't comment on the missing description and don't guess specifics.
+- focus: 2 or 3 labels for the specific things this business offers or specialises in, taken from their description, each 1 or 2 words and at most 16 characters (e.g. "Immigration", "Invisalign", "Payroll"). Empty if their description doesn't say.
 - fit: how well what the owner offers matches what this prospect likely needs: strong, moderate or weak.
-- points: 2 or 3 bullet points, each one service the owner could provide to this prospect, drawn from what the owner's business offers and matched to what this prospect does and how a business like theirs actually runs (its bookings, enquiries, admin, sales, staff, stock...). Each starts with a verb and must fit on one line of a phone screen: at most 5 words and 32 characters, counted strictly. No full stops.
+- points: 2 or 3 bullet points, each one service the owner could provide to this prospect, drawn from what the owner's business offers and matched to what this prospect does and how a business like theirs actually runs (its bookings, enquiries, admin, sales, staff, stock...). Tie each point to this prospect's own specialisms where you can, so two businesses of the same type don't get the same list. Each starts with a verb and must fit on one line of a phone screen: at most 5 words and 32 characters, counted strictly. No full stops.
 - summary: one short sentence, at most 12 words: the best angle to open with. Don't restate the fit level.
 - Use the prospect's own description only to make the points specific. Never invent facts about them: no made-up problems, numbers or tools.
 - If the fit is weak, give fewer points and say so plainly in the summary rather than stretching.
@@ -234,11 +235,12 @@ ${leads
             properties: {
               id: { type: "string" },
               about: { type: "string" },
+              focus: { type: "array", items: { type: "string" } },
               fit: { type: "string", enum: ["strong", "moderate", "weak"] },
               points: { type: "array", items: { type: "string" } },
               summary: { type: "string" },
             },
-            required: ["id", "about", "fit", "points", "summary"],
+            required: ["id", "about", "focus", "fit", "points", "summary"],
             additionalProperties: false,
           },
         },
@@ -251,7 +253,16 @@ ${leads
   return Object.fromEntries(
     theses
       .filter((t) => ids.has(t.id) && t.summary.trim())
-      .map((t) => [t.id, { about: t.about.trim(), fit: t.fit, points: t.points.map((p) => p.trim()).filter(Boolean).slice(0, 3), summary: t.summary.trim() }]),
+      .map((t) => [
+        t.id,
+        {
+          about: t.about.trim(),
+          focus: t.focus.map((f) => f.trim()).filter((f) => f && f.length <= 20).slice(0, 3),
+          fit: t.fit, 
+          points: t.points.map((p) => p.trim()).filter(Boolean).slice(0, 3),
+          summary: t.summary.trim(),
+        },
+      ]),
   );
 }
 

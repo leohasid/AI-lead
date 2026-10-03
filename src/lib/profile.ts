@@ -166,7 +166,7 @@ function words(text: string) {
     .filter((w) => w.length > 2 && !STOP.has(w));
 }
 
-// AI's case for a lead is kept as plain text: "Strong fit", "About: ...", one "• point" per line, then the summary.
+// AI's case for a lead is kept as plain text: "Strong fit", "About: ...", "Focus: a · b", one "• point" per line, then the summary.
 type Fit = "strong" | "moderate" | "weak";
 const FIT_LABEL: Record<Fit, Insight["match"]> = {
   strong: "High",
@@ -176,6 +176,7 @@ const FIT_LABEL: Record<Fit, Insight["match"]> = {
 
 export const formatThesis = (t: {
   about: string;
+  focus: string[];
   fit: Fit;
   points: string[];
   summary: string;
@@ -183,6 +184,7 @@ export const formatThesis = (t: {
   [
     `${t.fit[0].toUpperCase()}${t.fit.slice(1)} fit`,
     `About: ${t.about}`,
+    ...(t.focus.length ? [`Focus: ${t.focus.join(" · ")}`] : []),
     ...t.points.map((p) => `• ${p}`),
     t.summary,
   ].join("\n");
@@ -196,11 +198,17 @@ export function parseThesis(text: string) {
     ?.match(/^(strong|moderate|weak) fit$/i)?.[1]
     .toLowerCase() as Fit | undefined;
   const about = lines.find((l) => l.startsWith("About: "))?.slice(7) ?? null;
+  const focus =
+    lines
+      .find((l) => l.startsWith("Focus: "))
+      ?.slice(7)
+      .split(" · ") ?? [];
   const rest = (fit ? lines.slice(1) : lines).filter(
-    (l) => !l.startsWith("About: "),
+    (l) => !l.startsWith("About: ") && !l.startsWith("Focus: "),
   );
   return {
     about,
+    focus,
     match: fit ? FIT_LABEL[fit] : null,
     points: rest.filter((l) => l.startsWith("• ")).map((l) => l.slice(2)),
     summary: rest.filter((l) => !l.startsWith("• ")).join(" "),
@@ -212,7 +220,8 @@ export type Insight = {
   score: number;
   match: "High" | "Medium" | "Low";
   tags: string[];
-  about: string | null; // one line on what the business does (AI)
+  about: string | null; // what this particular business does (AI)
+  focus: string[]; // its specialisms, as short labels (AI)
   points: string[]; // how the user could help this business (AI); empty until AI has looked at it
   why: string; // one-line verdict
   ai: boolean; // points and why are AI's reasoning, not the rule-of-thumb fallback
@@ -285,6 +294,7 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
       thesis?.match ?? (score >= 6 ? "High" : score >= 3 ? "Medium" : "Low"),
     tags,
     about: thesis?.about ?? null,
+    focus: thesis?.focus ?? [],
     points: thesis?.points ?? [],
     why,
     ai: Boolean(thesis),
