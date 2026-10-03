@@ -10,8 +10,8 @@ import type { LeadQuery } from "./sources";
 
 const UA = "LeadSwipe/0.1 (lead discovery; contact via app owner)";
 const LOCAL_KM = 10;
-const WIDE_KM = 30;
-const PAGE_SIZE = 20;
+const WIDE_KM = 20;
+const PAGE_SIZE = 40;
 
 type Coords = { lat: number; lon: number };
 type Element = {
@@ -30,7 +30,7 @@ async function geocode(place: string): Promise<Coords | null> {
   if (geocoded.has(key)) return geocoded.get(key)!;
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(place)}`,
-    { headers: { "User-Agent": UA }, cache: "no-store" },
+    { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(10_000), cache: "no-store" },
   );
   if (!res.ok) throw new Error(`Couldn't look up "${place}" (${res.status})`);
   const [hit] = (await res.json()) as { lat: string; lon: string }[];
@@ -56,10 +56,16 @@ async function businessesAround(centre: Coords, km: number): Promise<Element[]> 
   return elements;
 }
 
+// Public Overpass servers are free but can be slow or busy; try the main one, then a mirror.
+const OVERPASS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+];
+
 async function queryOverpass({ lat, lon }: Coords, km: number): Promise<Element[]> {
   const around = `(around:${km * 1000},${lat},${lon})`;
   // Named, has a website, and not part of a chain ("brand" marks Tesco, Costa, etc).
-  const base = `["name"][~"^(contact:)?website$"~"."][!"brand"]`;
+  const base = `["name"]["website"][!"brand"]`;
   const query = `[out:json][timeout:25];
 (
   nwr${around}${base}["shop"];
@@ -70,14 +76,22 @@ async function queryOverpass({ lat, lon }: Coords, km: number): Promise<Element[
   nwr${around}${base}["tourism"~"^(hotel|guest_house|hostel)$"];
 );
 out center tags 400;`;
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": UA },
-    body: `data=${encodeURIComponent(query)}`,
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Business search is busy right now (${res.status}). Try again in a moment.`);
-  return ((await res.json()) as { elements?: Element[] }).elements ?? [];
+
+  for (const url of OVERPASS) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": UA },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: AbortSignal.timeout(25_000),
+        cache: "no-store",
+      });
+      if (res.ok) return ((await res.json()) as { elements?: Element[] }).elements ?? [];
+    } catch {
+      // Timed out or unreachable: fall through to the next server.
+    }
+  }
+  throw new Error("The business search is busy right now. Try again in a moment.");
 }
 
 function distanceKm(a: Coords, b: Coords) {
@@ -126,7 +140,7 @@ export async function searchOsm(query: LeadQuery): Promise<LeadDraft[]> {
   const ranked = elements.flatMap((el) => {
     const t = el.tags ?? {};
     const at = el.center ?? (el.lat != null && el.lon != null ? { lat: el.lat, lon: el.lon } : null);
-    const domain = domainOf(t.website ?? t["contact:website"]);
+    const domain = domainOf(t.website);
     if (!at || !t.name || !domain || seen.has(domain)) return [];
     seen.add(domain);
 
