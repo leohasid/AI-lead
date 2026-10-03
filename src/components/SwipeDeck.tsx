@@ -121,7 +121,7 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
     const json = await res.json();
     setFinding(false);
     if (!res.ok) return setFindError(json.error ?? "Search failed");
-    if (json.added === 0) return setFindError("No new businesses found for this filter. Try another one.");
+    if (json.added === 0) return setFindError("No more businesses found. Try different business types (the sliders button at the top).");
     router.refresh();
   }
 

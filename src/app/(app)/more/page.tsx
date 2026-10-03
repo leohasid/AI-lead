@@ -1,6 +1,7 @@
 import { Building2, MapPin, Target } from "lucide-react";
 import Link from "next/link";
 import SignOutButton from "@/components/SignOutButton";
+import { categoryLabels } from "@/lib/categories";
 import { getProfile } from "@/lib/profile";
 import { requireUser } from "@/lib/supabase/server";
 
@@ -40,7 +41,7 @@ export default async function MorePage() {
             [
               [Building2, "What you do", profile.business],
               [MapPin, "Based in", profile.location],
-              [Target, "Targeting", profile.target || "Any business"],
+              [Target, "Targeting", [...categoryLabels(profile.types), profile.target].filter(Boolean).join(", ") || "Any business"],
             ] as const
           ).map(([Icon, label, value]) => (
             <div key={label} className="flex gap-3">

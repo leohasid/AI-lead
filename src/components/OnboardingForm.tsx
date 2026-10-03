@@ -21,6 +21,8 @@ export default function OnboardingForm({ initial, editing }: { initial: Profile;
         business: String(f.get("business") ?? "").trim(),
         target: String(f.get("target") ?? "").trim(),
         location: String(f.get("location") ?? "").trim(),
+        // The target text may have changed, so drop what AI made of the old one.
+        target_tags: [],
       },
     });
     if (error) {

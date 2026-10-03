@@ -1,9 +1,16 @@
 import "server-only";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { CATEGORIES, type TagFilter } from "./categories";
 import type { Campaign, Lead } from "./types";
 
 // What the user told us at onboarding. Stored on the auth user's metadata.
-export type Profile = { business: string; target: string; location: string };
+export type Profile = {
+  business: string;
+  location: string;
+  types: string[]; // chosen business-type ids (see categories.ts); empty = all
+  target: string; // free-text "other" types
+  targetTags: TagFilter[]; // what AI made of `target`; empty = fall back to keyword search
+};
 
 export type Reach = "best" | "local" | "national";
 export const REACHES: [Reach, string][] = [
@@ -14,7 +21,22 @@ export const REACHES: [Reach, string][] = [
 
 export function getProfile(user: User): Profile {
   const m = user.user_metadata ?? {};
-  return { business: m.business ?? "", target: m.target ?? "", location: m.location ?? "" };
+  return {
+    business: m.business ?? "",
+    location: m.location ?? "",
+    types: m.types ?? [],
+    target: m.target ?? "",
+    targetTags: m.target_tags ?? [],
+  };
+}
+
+/** What to search for: the chosen types plus the "other" description; everything when nothing is chosen. */
+export function searchFor(profile: Profile): { filters: TagFilter[]; keywords: string | null } {
+  const chosen = CATEGORIES.filter((c) => profile.types.includes(c.id)).flatMap((c) => c.filters);
+  const keywords = profile.target && !profile.targetTags.length ? profile.target : null;
+  const filters = [...chosen, ...profile.targetTags];
+  if (!filters.length && !keywords) return { filters: CATEGORIES.flatMap((c) => c.filters), keywords: null };
+  return { filters, keywords };
 }
 
 export const isOnboarded = (user: User) => {

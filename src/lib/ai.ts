@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { TAG_KEYS, type TagFilter } from "./categories";
 import type { Campaign, Lead, Message } from "./types";
 
 const client = new Anthropic();
@@ -104,4 +105,38 @@ ${transcript}`,
       additionalProperties: false,
     },
   );
+}
+
+/** Turn "wedding photographers and florists" into OpenStreetMap tags the business search can use. */
+export async function interpretBusinessTypes(description: string): Promise<TagFilter[]> {
+  const { filters } = await jsonCall<{ filters: TagFilter[] }>(
+    `You translate a plain-English description of the kinds of business someone wants as clients into OpenStreetMap tags.
+Return the tag keys and values that businesses of those kinds are mapped with, e.g. "gyms" -> leisure=fitness_centre, "florists" -> shop=florist, "accountants" -> office=accountant, "plumbers and electricians" -> craft=plumber, craft=electrician.
+Use real OpenStreetMap values (lowercase, underscores). Include close variants a mapper might have used. Leave out anything that isn't a kind of business. If nothing in the description is a kind of business, return an empty list.`,
+    description,
+    {
+      type: "object",
+      properties: {
+        filters: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              key: { type: "string", enum: [...TAG_KEYS] },
+              values: { type: "array", items: { type: "string" } },
+            },
+            required: ["key", "values"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["filters"],
+      additionalProperties: false,
+    },
+  );
+  // The values go into a map query, so keep only plain tag values.
+  return filters
+    .map((f) => ({ key: f.key, values: f.values.filter((v) => /^[a-z0-9_]{2,40}$/.test(v)).slice(0, 12) }))
+    .filter((f) => TAG_KEYS.includes(f.key) && f.values.length > 0)
+    .slice(0, 8);
 }

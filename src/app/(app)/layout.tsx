@@ -2,9 +2,10 @@ import { User } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
+import FilterButton from "@/components/FilterButton";
 import Logo from "@/components/Logo";
 import NotificationBell from "@/components/NotificationBell";
-import { isOnboarded } from "@/lib/profile";
+import { getProfile, isOnboarded } from "@/lib/profile";
 import { requireUser } from "@/lib/supabase/server";
 import type { Notification } from "@/lib/types";
 
@@ -13,6 +14,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   if (!user) redirect("/login");
   // First sign-in: ask what the business does before anything else.
   if (!isOnboarded(user)) redirect("/onboarding");
+
+  const profile = getProfile(user);
 
   const [{ data: notifications }, { count: matches }, { count: messages }] = await Promise.all([
     supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(20),
@@ -27,7 +30,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <header className="sticky top-0 z-20 bg-background/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-3">
           <Logo />
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-1.5">
+            <FilterButton types={profile.types} other={profile.target} />
             <NotificationBell userId={user.id} initial={(notifications ?? []) as Notification[]} />
             <Link
               href="/more"

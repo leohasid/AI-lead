@@ -1,5 +1,6 @@
 import "server-only";
 import { apolloEnabled, searchPeople, type LeadDraft } from "./apollo";
+import type { TagFilter } from "./categories";
 import { searchOsm } from "./osm";
 
 // Where leads come from. Every source turns a LeadQuery into business leads;
@@ -10,7 +11,8 @@ import { searchOsm } from "./osm";
 // external_ids a prefix (e.g. "gmaps-") so they never collide with Apollo's.
 
 export type LeadQuery = {
-  keywords: string | null; // the kinds of business the user wants to target
+  filters: TagFilter[]; // the business types to look for
+  keywords: string | null; // free-text description of who to target, when it couldn't be turned into filters
   location: string | null; // only search here (null = anywhere)
   home: string | null; // the user's own location, for context
   page: number;

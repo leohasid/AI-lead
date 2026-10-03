@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { ensureDeck, getProfile, isLocal, type Reach } from "./profile";
+import { ensureDeck, getProfile, isLocal, searchFor, type Reach } from "./profile";
 import { findLeads } from "./sources";
 import type { Lead } from "./types";
 import { createAdminClient } from "./supabase/server";
@@ -17,10 +17,10 @@ export async function fillDeck(db: SupabaseClient, user: User, reach: Reach): Pr
 
   // Filters overlap (Discover includes local businesses), so a page can be all
   // duplicates. Skip ahead a few pages before deciding there's nothing new.
-  for (let tries = 0; tries < 4 && added.length === 0; tries++) {
+  for (let tries = 0; tries < 3 && added.length === 0; tries++) {
     page += 1;
     let found = await findLeads({
-      keywords: profile.target || null,
+      ...searchFor(profile),
       location: reach === "local" ? profile.location : null,
       home: profile.location,
       page,
