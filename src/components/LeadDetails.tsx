@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Insight } from "@/lib/profile";
 import type { Lead } from "@/lib/types";
+import type { FullBrief } from "@/lib/ai";
 import type { WebsiteInfo } from "@/lib/website";
 
 // Full-screen sheet with everything known about one business, opened from its card.
@@ -24,6 +25,18 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
       current = false;
     };
   }, [lead.id, lead.company_domain]);
+
+  // "Show more": AI's fuller write-up, fetched only when asked for.
+  // "idle" = not asked, "loading" = being written, null = AI couldn't write one
+  const [brief, setBrief] = useState<FullBrief | null | "idle" | "loading">("idle");
+
+  function showMore() {
+    setBrief("loading");
+    fetch(`/api/leads/${lead.id}/details?full=1`)
+      .then((res) => (res.ok ? res.json() : { brief: null }))
+      .then((json) => setBrief(json.brief ?? null))
+      .catch(() => setBrief(null));
+  }
 
   const name = lead.company ?? [lead.first_name, lead.last_name].filter(Boolean).join(" ");
   const person = [lead.first_name, lead.last_name].filter(Boolean).join(" ");
@@ -51,7 +64,8 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
           </button>
         </div>
 
-        {insight.about && (
+        {/* The one-line version; hidden once the fuller write-up below is showing. */}
+        {insight.about && !(brief && typeof brief === "object") && (
           <section className="mt-4">
             <h3 className="label">What they do</h3>
             <p className="text-sm leading-relaxed text-zinc-100">{insight.about}</p>
@@ -76,6 +90,36 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
           <p className={`text-sm leading-relaxed ${insight.points.length ? "mt-2.5 border-t border-white/10 pt-2.5 text-zinc-300" : "mt-1 text-zinc-100"}`}>
             {insight.why}
           </p>
+
+          {brief === "idle" ? (
+            <button type="button" onClick={showMore} className="btn-primary mt-3 w-full">
+              Show more
+            </button>
+          ) : brief === "loading" ? (
+            <p className="mt-3 flex items-center gap-2 text-sm text-zinc-300" role="status">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+              Writing a fuller summary…
+            </p>
+          ) : brief ? (
+            <div className="mt-3 space-y-3 border-t border-white/10 pt-3 text-sm leading-relaxed">
+              <div>
+                <h3 className="label">What they do</h3>
+                <p className="text-zinc-100">{brief.about}</p>
+              </div>
+              <div>
+                <h3 className="label">How you could help</h3>
+                <ul className="space-y-2">
+                  {brief.help.map((h) => (
+                    <li key={h.service}>
+                      <span className="font-medium text-white">{h.service}.</span> <span className="text-zinc-300">{h.how}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-amber-200">The fuller AI summary isn&apos;t available right now.</p>
+          )}
         </section>
 
         <dl className="mt-4 space-y-2.5 text-sm text-zinc-200">

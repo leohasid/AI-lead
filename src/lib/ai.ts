@@ -270,3 +270,39 @@ export async function aiStatus(): Promise<{ ok: boolean; detail: string }> {
     return { ok: false, detail: e instanceof Anthropic.APIError ? `Claude rejected the key (${e.status})` : "Couldn't reach Claude" };
   }
 }
+
+export type FullBrief = { about: string; help: { service: string; how: string }[] };
+
+/** The longer write-up behind "Show more": what one business does and how the user's business could help it. */
+export async function leadBrief(business: string, lead: Omit<LeadBrief, "id">): Promise<FullBrief> {
+  return jsonCall<FullBrief>(
+    `You brief a business owner on one prospect before they get in touch.
+- about: what this prospect does, summarised in your own words in 2 sentences, at most 40 words: what they offer, who for, and anything notable about how they operate. Never copy or quote their website or marketing wording.
+- help: 3 services the owner could provide to this prospect, drawn from what the owner's business offers and matched to what this prospect actually does. For each: "service" names it in at most 6 words; "how" says in one sentence, at most 22 words, what it would do for this prospect in particular and why it matters to them.
+- Never invent facts about the prospect: no made-up problems, numbers or tools. Say "likely" for anything you are inferring from the kind of business it is.
+- If something the owner offers doesn't fit this prospect, leave it out rather than stretching.
+- Plain English, addressed to the owner as "you". No sales language.`,
+    `What the owner's business does:
+${business}
+
+Prospect:
+${[`Name: ${lead.name}`, lead.type && `Type: ${lead.type}`, lead.about && `From their website: ${lead.about}`].filter(Boolean).join("\n")}`,
+    {
+      type: "object",
+      properties: {
+        about: { type: "string" },
+        help: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { service: { type: "string" }, how: { type: "string" } },
+            required: ["service", "how"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["about", "help"],
+      additionalProperties: false,
+    },
+  );
+}
