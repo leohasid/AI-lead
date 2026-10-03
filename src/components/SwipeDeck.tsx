@@ -1,10 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
-import { Building2, Clock, FileText, Globe, Heart, MapPin, Sparkles, Target, Undo2, X } from "lucide-react";
+import { Building2, Clock, FileText, Globe, Heart, Info, MapPin, Sparkles, Target, Undo2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import LeadDetails from "@/components/LeadDetails";
 import type { Insight, Reach } from "@/lib/profile";
 import type { Lead } from "@/lib/types";
 
@@ -50,6 +51,7 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
   const [lastSkipped, setLastSkipped] = useState<CardData | null>(null);
   const [finding, setFinding] = useState(false);
   const [findError, setFindError] = useState("");
+  const [details, setDetails] = useState<CardData | null>(null);
 
   const top = cards[0];
 
@@ -103,12 +105,13 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (details) return;
       if (e.key === "ArrowLeft") swipe("left");
       if (e.key === "ArrowRight") swipe("right");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [swipe]);
+  }, [swipe, details]);
 
   async function findMore() {
     setFinding(true);
@@ -137,7 +140,7 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
         )}
         <AnimatePresence custom={exitDir}>
           {top ? (
-            <Card key={top.lead.id} card={top} onSwipe={swipe} exitDir={exitDir} />
+            <Card key={top.lead.id} card={top} onSwipe={swipe} onDetails={() => setDetails(top)} exitDir={exitDir} />
           ) : (
             <motion.div
               key="empty"
@@ -185,6 +188,8 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
           <Sparkles size={24} className="fill-fuchsia-400" />
         </RoundButton>
       </div>
+
+      {details && <LeadDetails lead={details.lead} insight={details.insight} onClose={() => setDetails(null)} />}
 
       {activity && (
         <Link href={`/leads/${activity.id}`} className="mt-5 flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm">
@@ -234,7 +239,17 @@ function RoundButton({
   );
 }
 
-function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Direction) => void; exitDir: "left" | "right" }) {
+function Card({
+  card,
+  onSwipe,
+  onDetails,
+  exitDir,
+}: {
+  card: CardData;
+  onSwipe: (d: Direction) => void;
+  onDetails: () => void;
+  exitDir: "left" | "right";
+}) {
   const { lead, insight } = card;
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-18, 18]);
@@ -314,7 +329,19 @@ function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Directi
 
       {/* Details: always shown in full */}
       <div className="flex shrink-0 flex-col px-5 pb-4 pt-1">
-        <h2 className="truncate text-[26px] font-bold leading-tight">{name}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="min-w-0 flex-1 truncate text-[26px] font-bold leading-tight">{name}</h2>
+          <button
+            onClick={onDetails}
+            // Don't let a tap on the button start a card drag.
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label={`More about ${name}`}
+            className="flex shrink-0 items-center gap-1 rounded-full border border-violet-400/50 bg-violet-500/15 px-2.5 py-1 text-xs font-medium text-violet-100"
+          >
+            <Info size={14} />
+            Details
+          </button>
+        </div>
         {contact && <p className="mt-0.5 truncate text-zinc-300">{contact}</p>}
         <div className="mt-1.5 space-y-1 text-sm text-zinc-300">
           {lead.location && (
