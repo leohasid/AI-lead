@@ -81,8 +81,10 @@ export async function searchGoogle(query: LeadQuery): Promise<LeadDraft[]> {
 
   // Each batch takes the next few search phrases. Discover moves to a new city
   // every batch, so it can keep cycling; Local stops once every phrase is used.
-  const start = (query.page - 1) * SEARCHES_PER_BATCH;
-  if (where.local && start >= query.terms.length) return [];
+  const used = (query.page - 1) * SEARCHES_PER_BATCH;
+  if (where.local && used >= query.terms.length) return [];
+  // Discover starts halfway down the list, so the two tabs don't open on the same kinds of business.
+  const start = used + (where.local ? 0 : Math.floor(query.terms.length / 2));
   const terms = Array.from(
     new Set(Array.from({ length: SEARCHES_PER_BATCH }, (_, i) => query.terms[(start + i) % query.terms.length])),
   );

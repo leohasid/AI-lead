@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { suggestTargets } from "./ai";
 import { ensureDeck, getProfile, isLocal, searchFor, type Reach } from "./profile";
 import { findLeads } from "./sources";
 import type { Lead } from "./types";
@@ -7,8 +8,22 @@ import { createAdminClient } from "./supabase/server";
 
 /** Pull the next page of businesses for one filter into the user's deck. Returns the new leads. */
 export async function fillDeck(db: SupabaseClient, user: User, reach: Reach): Promise<Lead[]> {
-  const profile = getProfile(user);
+  let profile = getProfile(user);
   const deck = await ensureDeck(db, user);
+
+  // No filters picked and AI hasn't yet chosen who suits this business: have it choose now, once.
+  let chosen: { auto_terms: string[]; auto_tags: unknown } | null = null;
+  if (!profile.types.length && !profile.target && !profile.autoTerms.length) {
+    try {
+      const { terms, tags } = await suggestTargets(profile.business);
+      if (terms.length) {
+        chosen = { auto_terms: terms, auto_tags: tags };
+        profile = { ...profile, autoTerms: terms, autoTags: tags };
+      }
+    } catch {
+      // No working AI key: fall back to every business type.
+    }
+  }
 
   // Each filter pages through its own results; remember how far we got.
   const pages: Partial<Record<Reach, number>> = user.user_metadata?.pages ?? {};
@@ -42,7 +57,7 @@ export async function fillDeck(db: SupabaseClient, user: User, reach: Reach): Pr
   // Admin write: updating via the user's client rotates their session, which a
   // page render can't save, and later queries in the same request lose auth.
   await createAdminClient().auth.admin.updateUserById(user.id, {
-    user_metadata: { ...user.user_metadata, pages: { ...pages, [reach]: page } },
+    user_metadata: { ...user.user_metadata, ...chosen, pages: { ...pages, [reach]: page } },
   });
   return added;
 }

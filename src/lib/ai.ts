@@ -139,11 +139,61 @@ Use real OpenStreetMap values (lowercase, underscores). Include close variants a
       additionalProperties: false,
     },
   );
-  // The values go into a map query, so keep only plain tag values.
+  return cleanTags(filters);
+}
+
+// The values go into a map query, so keep only plain tag values.
+function cleanTags(filters: TagFilter[]) {
   return filters
     .map((f) => ({ key: f.key, values: f.values.filter((v) => /^[a-z0-9_]{2,40}$/.test(v)).slice(0, 12) }))
     .filter((f) => TAG_KEYS.includes(f.key) && f.values.length > 0)
-    .slice(0, 8);
+    .slice(0, 12);
+}
+
+const TAG_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      key: { type: "string", enum: [...TAG_KEYS] },
+      values: { type: "array", items: { type: "string" } },
+    },
+    required: ["key", "values"],
+    additionalProperties: false,
+  },
+};
+
+/**
+ * Which kinds of business should this user be shown when they haven't picked any?
+ * Returns search phrases ("dental clinics") and the matching OpenStreetMap tags.
+ */
+export async function suggestTargets(business: string): Promise<{ terms: string[]; tags: TagFilter[] }> {
+  const { targets } = await jsonCall<{ targets: { phrase: string; tags: TagFilter[] }[] }>(
+    `A business owner describes what their business does. Choose the 8 kinds of local business most likely to need and buy that, best first.
+- Think about who has the problem the owner solves, can afford it, and decides for themselves (independent businesses, not national chains).
+- phrase: what you would type into a maps search to find them, plural, 1-3 words, e.g. "dental clinics", "estate agents", "law firms".
+- tags: the OpenStreetMap tags businesses of that kind are mapped with, e.g. amenity=dentist, office=estate_agent, office=lawyer. Real OpenStreetMap values only (lowercase, underscores).
+- Spread across different sectors rather than eight variations of one.`,
+    business,
+    {
+      type: "object",
+      properties: {
+        targets: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { phrase: { type: "string" }, tags: TAG_SCHEMA },
+            required: ["phrase", "tags"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["targets"],
+      additionalProperties: false,
+    },
+  );
+  const terms = targets.map((t) => t.phrase.trim().toLowerCase()).filter((p) => p && p.length <= 40).slice(0, 10);
+  return { terms, tags: cleanTags(targets.flatMap((t) => t.tags)) };
 }
 
 export type LeadBrief = { id: string; name: string; type: string | null; about: string | null };

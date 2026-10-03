@@ -10,9 +10,11 @@ import { CATEGORIES } from "@/lib/categories";
 export default function FilterButton({
   types,
   other,
+  suggested,
 }: {
   types: string[];
   other: string;
+  suggested: string[]; // what AI chose for this business when nothing is picked
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -85,9 +87,17 @@ export default function FilterButton({
                 </button>
               </div>
               <p className="mt-1 text-sm text-zinc-400">
-                Pick as many as you like. Leave everything empty to see all
-                kinds.
+                Pick as many as you like. Leave everything empty and we&apos;ll
+                choose the businesses that suit what you do.
               </p>
+              {!active && suggested.length > 0 && (
+                <p className="mt-3 rounded-2xl border border-violet-400/30 bg-violet-500/10 p-3 text-sm text-zinc-200">
+                  <span className="font-medium text-violet-200">
+                    Chosen for your business:
+                  </span>{" "}
+                  {suggested.join(", ")}
+                </p>
+              )}
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {CATEGORIES.map((c) => {

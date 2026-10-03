@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-3">
           <Logo />
           <div className="ml-auto flex items-center gap-1.5">
-            <FilterButton types={profile.types} other={profile.target} />
+            <FilterButton types={profile.types} other={profile.target} suggested={profile.autoTerms} />
             <NotificationBell userId={user.id} initial={(notifications ?? []) as Notification[]} />
             <Link
               href="/more"

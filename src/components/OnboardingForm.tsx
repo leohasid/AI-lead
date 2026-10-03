@@ -23,6 +23,10 @@ export default function OnboardingForm({ initial, editing }: { initial: Profile;
         location: String(f.get("location") ?? "").trim(),
         // The target text may have changed, so drop what AI made of the old one.
         target_tags: [],
+        // What the business does may have changed too, so let AI choose its targets again.
+        auto_terms: null,
+        auto_tags: null,
+        pages: null,
       },
     });
     if (error) {
