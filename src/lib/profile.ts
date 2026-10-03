@@ -31,12 +31,23 @@ export function getProfile(user: User): Profile {
 }
 
 /** What to search for: the chosen types plus the "other" description; everything when nothing is chosen. */
-export function searchFor(profile: Profile): { filters: TagFilter[]; keywords: string | null } {
-  const chosen = CATEGORIES.filter((c) => profile.types.includes(c.id)).flatMap((c) => c.filters);
+export function searchFor(profile: Profile): { filters: TagFilter[]; terms: string[]; keywords: string | null } {
+  const picked = CATEGORIES.filter((c) => profile.types.includes(c.id));
+  const chosen = picked.flatMap((c) => c.filters);
+  // "florists, dog groomers and vets" -> one search phrase each.
+  const other = profile.target.split(/,|\band\b|\n/).map((t) => t.trim()).filter(Boolean);
+  const everything = !picked.length && !other.length;
+  // One phrase from each type in turn, so batches mix the types.
+  // With no filter, food and drink go last: they're everywhere and would otherwise fill the first batches.
+  const common = ["food", "bars", "hotels"];
+  const all = [...CATEGORIES].sort((a, b) => Number(common.includes(a.id)) - Number(common.includes(b.id)));
+  const lists = (everything ? all : picked).map((c) => c.search);
+  const terms = [...other];
+  for (let i = 0; lists.some((l) => l[i]); i++) for (const l of lists) if (l[i]) terms.push(l[i]);
   const keywords = profile.target && !profile.targetTags.length ? profile.target : null;
   const filters = [...chosen, ...profile.targetTags];
-  if (!filters.length && !keywords) return { filters: CATEGORIES.flatMap((c) => c.filters), keywords: null };
-  return { filters, keywords };
+  if (everything) return { filters: CATEGORIES.flatMap((c) => c.filters), terms, keywords: null };
+  return { filters, terms, keywords };
 }
 
 export const isOnboarded = (user: User) => {
@@ -109,12 +120,16 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
   const businessHits = words(profile.business).filter((w) => about.has(w) && !targetHits.includes(w));
   const decisionMaker = Boolean(lead.title && DECISION_MAKER.test(lead.title));
   const local = isLocal(lead, profile);
+  // Google leads carry their rating at the start of the headline: "4.9★ (765 reviews)".
+  const [, stars, reviews] = lead.headline?.match(/^(\d\.\d)★ \((\d+) reviews\)/) ?? [];
+  const established = Number(stars) >= 4.5 && Number(reviews) >= 50;
 
   const score =
     3 * new Set(targetHits).size +
     new Set(businessHits).size +
     (decisionMaker ? 2 : 0) +
     (local ? 1 : 0) +
+    (established ? 2 : 0) +
     (lead.email ? 2 : 0) +
     (lead.company_domain ? 1 : 0) +
     (lead.linkedin_url ? 1 : 0);
@@ -123,6 +138,7 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     targetHits.length > 0 && "Target match",
     decisionMaker && "Decision-maker",
     local && "Local",
+    established && "Top rated",
     lead.email && "Email found",
     lead.company_domain && "Has website",
     lead.linkedin_url && "On LinkedIn",
@@ -133,6 +149,7 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     targetHits.length > 0 && `Matches what you're targeting (${[...new Set(targetHits)].join(", ")})`,
     decisionMaker && `${contact || "The contact"} is the ${lead.title}, so they can say yes`,
     local && "Close to you",
+    established && `Rated ${stars} by ${reviews} customers, so an established business`,
     lead.email && "Has a public email you can contact",
   ].filter(Boolean) as string[];
   const why = reasons.length
@@ -144,7 +161,7 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     match: score >= 6 ? "High" : score >= 3 ? "Medium" : "Low",
     tags,
     why,
-    source: lead.external_id?.startsWith("demo-") ? "Demo" : lead.external_id?.startsWith("osm-") ? "Map" : "Apollo",
+    source: lead.external_id?.startsWith("demo-") ? "Demo" : lead.external_id?.startsWith("osm-") ? "Map" : lead.external_id?.startsWith("gmaps-") ? "Google" : "Apollo",
     local,
   };
 }

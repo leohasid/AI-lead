@@ -41,8 +41,8 @@ export async function approveLead(db: SupabaseClient, lead: Lead): Promise<Lead>
   const campaign = await getCampaign(db, lead.campaign_id);
 
   let enriched: Lead = lead;
-  if (!lead.email && lead.external_id?.startsWith("osm-")) {
-    // Map leads have no person to look up; use the contact email on the business's website.
+  if (!lead.email && /^(osm|gmaps)-/.test(lead.external_id ?? "")) {
+    // Map and Google leads have no person to look up; use the contact email on the business's website.
     const email = lead.company_domain ? await findWebsiteEmail(lead.company_domain) : null;
     if (email) enriched = { ...lead, email };
   } else if (!lead.email && lead.external_id) {

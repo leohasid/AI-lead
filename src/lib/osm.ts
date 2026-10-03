@@ -168,27 +168,35 @@ function stems(text: string) {
     .filter((w) => w.length > 2);
 }
 
-export async function searchOsm(query: LeadQuery): Promise<LeadDraft[]> {
-  if (!query.home) return [];
+export type SearchArea = { centre: Coords; area: string; km: number; page: number; local: boolean };
+
+/**
+ * Where one batch looks. Local searches the user's own area. Discover rotates
+ * through the country's big cities (skipping the user's own), one per batch.
+ */
+export async function searchArea(query: LeadQuery): Promise<SearchArea | null> {
+  if (!query.home) return null;
   const home = await geocode(query.home);
   if (!home) throw new Error(`Couldn't find "${query.home}" on the map. Edit your location under More.`);
   // The user's own spelling of their town, so the Local filter recognises these leads.
   const town = titleCase(query.home.split(",")[0].trim());
 
-  // Local searches the user's area. Discover rotates through the country's big
-  // cities (skipping the user's own), one per batch.
-  let centre: Coords = home;
-  let area = town;
-  let page = query.page;
-  let km = AREA_KM;
   const elsewhere = (CITIES[home.country] ?? []).filter(([, lat, lon]) => distanceKm(home, { lat, lon }) > AREA_KM * 2);
-  if (!query.location && elsewhere.length) {
-    const [name, lat, lon] = elsewhere[(query.page - 1) % elsewhere.length];
-    centre = { lat, lon };
-    area = name;
-    km = CITY_KM;
-    page = Math.floor((query.page - 1) / elsewhere.length) + 1;
-  }
+  if (query.location || !elsewhere.length) return { centre: home, area: town, km: AREA_KM, page: query.page, local: true };
+  const [name, lat, lon] = elsewhere[(query.page - 1) % elsewhere.length];
+  return {
+    centre: { lat, lon },
+    area: name,
+    km: CITY_KM,
+    page: Math.floor((query.page - 1) / elsewhere.length) + 1,
+    local: false,
+  };
+}
+
+export async function searchOsm(query: LeadQuery): Promise<LeadDraft[]> {
+  const where = await searchArea(query);
+  if (!where) return [];
+  const { centre, area, km, page } = where;
 
   const words = [...new Set(stems(query.keywords ?? ""))].slice(0, 8);
   const elements = await businessesAround(centre, km, query.filters, words);

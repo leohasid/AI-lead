@@ -37,7 +37,8 @@ npm run dev
 | Lead lifecycle (enrich → draft → send → reply triage → notify) | [src/lib/pipeline.ts](src/lib/pipeline.ts) |
 | Claude prompts (outreach writer, reply classifier) | [src/lib/ai.ts](src/lib/ai.ts) |
 | Lead sources (add LinkedIn, Google, social here) | [src/lib/sources.ts](src/lib/sources.ts) |
-| Real local businesses from OpenStreetMap (no key needed) | [src/lib/osm.ts](src/lib/osm.ts) |
+| Real businesses from Google Places (needs `GOOGLE_PLACES_API_KEY`) | [src/lib/google.ts](src/lib/google.ts) |
+| Free fallback: businesses from OpenStreetMap (no key needed) | [src/lib/osm.ts](src/lib/osm.ts) |
 | Business-type filters (and the map tags behind them) | [src/lib/categories.ts](src/lib/categories.ts) |
 | Apollo search/enrichment + demo leads | [src/lib/apollo.ts](src/lib/apollo.ts) |
 | Profile, filters and "best match" scoring | [src/lib/profile.ts](src/lib/profile.ts) |
