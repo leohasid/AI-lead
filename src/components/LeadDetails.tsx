@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink, Globe, Map as MapIcon, MapPin, Phone, Sparkles, Star, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { Insight } from "@/lib/profile";
 import type { Lead } from "@/lib/types";
@@ -9,19 +9,17 @@ import type { WebsiteInfo } from "@/lib/website";
 
 // Full-screen sheet with everything known about one business, opened from its card.
 export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; insight: Insight; onClose: () => void }) {
-  // undefined = still reading the website, null = nothing could be read
-  const [website, setWebsite] = useState<WebsiteInfo | null | undefined>(undefined);
+  // The business's own description is only fetched if asked for: the sheet's job is the quick case for the lead.
+  // "idle" = not asked yet, "loading" = reading the website, null = nothing could be read
+  const [website, setWebsite] = useState<WebsiteInfo | null | "idle" | "loading">("idle");
 
-  useEffect(() => {
-    let current = true;
+  function readTheirSite() {
+    setWebsite("loading");
     fetch(`/api/leads/${lead.id}/details`)
       .then((res) => (res.ok ? res.json() : { website: null }))
-      .then((json) => current && setWebsite(json.website ?? null))
-      .catch(() => current && setWebsite(null));
-    return () => {
-      current = false;
-    };
-  }, [lead.id]);
+      .then((json) => setWebsite(json.website ?? null))
+      .catch(() => setWebsite(null));
+  }
 
   const name = lead.company ?? [lead.first_name, lead.last_name].filter(Boolean).join(" ");
   const person = [lead.first_name, lead.last_name].filter(Boolean).join(" ");
@@ -52,11 +50,22 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
         <section className="mt-4 rounded-2xl border border-violet-400/30 bg-violet-500/10 p-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-violet-300">
             <Sparkles size={16} className="fill-violet-400" />
-            Why this lead?
+            {insight.points.length ? "How you could help" : "Why this lead?"}
           </div>
-          <p className="mt-1 text-sm leading-relaxed text-zinc-100">{insight.why}</p>
+          {insight.points.length > 0 && (
+            <ul className="mt-2 space-y-1.5 text-sm leading-snug text-zinc-100">
+              {insight.points.map((p) => (
+                <li key={p} className="flex gap-2">
+                  <span className="text-violet-400">•</span>
+                  {p}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className={`text-sm leading-relaxed ${insight.points.length ? "mt-2.5 border-t border-white/10 pt-2.5 text-zinc-300" : "mt-1 text-zinc-100"}`}>
+            {insight.why}
+          </p>
         </section>
-
 
         <dl className="mt-4 space-y-2.5 text-sm text-zinc-200">
           {person && (
@@ -83,33 +92,36 @@ export default function LeadDetails({ lead, insight, onClose }: { lead: Lead; in
           )}
         </dl>
 
-        <section className="mt-5">
-          <h3 className="label">What they do</h3>
-          {website === undefined ? (
-            <p className="flex items-center gap-2 text-sm text-zinc-400" role="status">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
-              Reading their website…
-            </p>
-          ) : website && (website.description || website.about.length) ? (
-            <div className="space-y-3 text-sm leading-relaxed text-zinc-200">
-              {website.description && <p className="font-medium text-white">{website.description}</p>}
-              {website.about
-                .filter((p) => p !== website.description)
-                .map((p) => (
-                  <p key={p}>{p}</p>
-                ))}
-              <p className="text-xs text-zinc-500">From {lead.company_domain}, in their own words.</p>
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-400">
-              {lead.company_domain
-                ? "Their website didn't give a description we could read. Open it to see what they do."
-                : "No website on record for this business."}
-            </p>
-          )}
-        </section>
+        {lead.company_domain && (
+          <section className="mt-5">
+            {website === "idle" ? (
+              <button type="button" onClick={readTheirSite} className="text-sm text-violet-300 underline decoration-violet-400/40">
+                What do they say about themselves?
+              </button>
+            ) : website === "loading" ? (
+              <p className="flex items-center gap-2 text-sm text-zinc-400" role="status">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+                Reading their website…
+              </p>
+            ) : website && (website.description || website.about.length) ? (
+              <>
+                <h3 className="label">In their own words</h3>
+                <div className="space-y-3 text-sm leading-relaxed text-zinc-200">
+                  {website.description && <p className="font-medium text-white">{website.description}</p>}
+                  {website.about
+                    .filter((p) => p !== website.description)
+                    .map((p) => (
+                      <p key={p}>{p}</p>
+                    ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-zinc-400">Their website didn&apos;t give a description we could read. Open it to see more.</p>
+            )}
+          </section>
+        )}
 
-        {website && website.socials.length > 0 && (
+        {website && typeof website === "object" && website.socials.length > 0 && (
           <section className="mt-5">
             <h3 className="label">Social media</h3>
             <div className="flex flex-wrap gap-2">

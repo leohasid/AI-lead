@@ -103,13 +103,32 @@ function words(text: string) {
     .filter((w) => w.length > 2 && !STOP.has(w));
 }
 
+// AI's case for a lead is kept as plain text: "Strong fit", one "• point" per line, then the summary.
+type Fit = "strong" | "moderate" | "weak";
+const FIT_LABEL: Record<Fit, Insight["match"]> = { strong: "High", moderate: "Medium", weak: "Low" };
+
+export const formatThesis = (t: { fit: Fit; points: string[]; summary: string }) =>
+  [`${t.fit[0].toUpperCase()}${t.fit.slice(1)} fit`, ...t.points.map((p) => `• ${p}`), t.summary].join("\n");
+
+export function parseThesis(text: string) {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const fit = lines[0]?.match(/^(strong|moderate|weak) fit$/i)?.[1].toLowerCase() as Fit | undefined;
+  const rest = fit ? lines.slice(1) : lines;
+  return {
+    match: fit ? FIT_LABEL[fit] : null,
+    points: rest.filter((l) => l.startsWith("• ")).map((l) => l.slice(2)),
+    summary: rest.filter((l) => !l.startsWith("• ")).join(" "),
+  };
+}
+
 /** What the swipe card shows about why a lead fits. */
 export type Insight = {
   score: number;
   match: "High" | "Medium" | "Low";
   tags: string[];
-  why: string;
-  ai: boolean; // `why` is AI's reasoning about this lead, not the rule-of-thumb fallback
+  points: string[]; // how the user could help this business (AI); empty until AI has looked at it
+  why: string; // one-line verdict
+  ai: boolean; // points and why are AI's reasoning, not the rule-of-thumb fallback
   source: string;
   local: boolean;
 };
@@ -153,15 +172,17 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     lead.email && "Has a public email you can contact",
   ].filter(Boolean) as string[];
   // Before first contact, ai_summary holds AI's case for this lead (see /api/leads/insights).
-  const thesis = lead.status === "new" ? lead.ai_summary : null;
+  const thesis = lead.status === "new" && lead.ai_summary ? parseThesis(lead.ai_summary) : null;
   const why =
-    thesis ??
+    thesis?.summary ??
     (reasons.length ? `${reasons.join(". ")}.` : `A ${lead.industry ? `${lead.industry.toLowerCase()} ` : ""}business you could help.`);
 
   return {
     score,
-    match: score >= 6 ? "High" : score >= 3 ? "Medium" : "Low",
+    // AI's verdict when it has one; otherwise the rule-of-thumb score.
+    match: thesis?.match ?? (score >= 6 ? "High" : score >= 3 ? "Medium" : "Low"),
     tags,
+    points: thesis?.points ?? [],
     why,
     ai: Boolean(thesis),
     source: lead.external_id?.startsWith("demo-") ? "Demo" : lead.external_id?.startsWith("osm-") ? "Map" : lead.external_id?.startsWith("gmaps-") ? "Google" : "Apollo",

@@ -44,9 +44,9 @@ function meta(html: string, name: string) {
   return content ? decode(content) : null;
 }
 
-async function fetchPage(url: string) {
+async function fetchPage(url: string, ms = 7000) {
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(7000), cache: "no-store" });
+    const res = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(ms), cache: "no-store" });
     if (!res.ok || !res.headers.get("content-type")?.includes("html")) return null;
     return (await res.text()).slice(0, 600_000);
   } catch {
@@ -66,13 +66,14 @@ function paragraphs(html: string) {
   return found;
 }
 
-export async function readWebsite(domain: string): Promise<WebsiteInfo | null> {
-  const home = await fetchPage(`https://${domain}`);
+/** `quick` reads just the homepage with a short time limit, for when speed matters more than depth. */
+export async function readWebsite(domain: string, quick = false): Promise<WebsiteInfo | null> {
+  const home = await fetchPage(`https://${domain}`, quick ? 4000 : 7000);
   if (!home) return null;
 
   let about = paragraphs(home);
   // A thin homepage usually means the story is on the About page.
-  if (about.join(" ").length < 250) {
+  if (!quick && about.join(" ").length < 250) {
     for (const path of ["/about", "/about-us"]) {
       const page = await fetchPage(`https://${domain}${path}`);
       const more = page ? paragraphs(page) : [];

@@ -103,11 +103,14 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
       body: JSON.stringify({ ids }),
     })
       .then((res) => res.json())
-      .then((json: { available?: boolean; theses?: Record<string, string> }) => {
+      .then((json: { available?: boolean; theses?: Record<string, { match: Insight["match"]; points: string[]; summary: string }> }) => {
         if (!json.available) return setAiOff(true);
         const theses = json.theses ?? {};
         setCards((prev) =>
-          prev.map((c) => (theses[c.lead.id] ? { ...c, insight: { ...c.insight, why: theses[c.lead.id], ai: true } } : c)),
+          prev.map((c) => {
+            const t = theses[c.lead.id];
+            return t ? { ...c, insight: { ...c.insight, match: t.match, points: t.points, why: t.summary, ai: true } } : c;
+          }),
         );
       })
       .catch(() => setAiOff(true));
@@ -164,7 +167,15 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
         )}
         <AnimatePresence custom={exitDir}>
           {top ? (
-            <Card key={top.lead.id} card={top} onSwipe={swipe} onDetails={() => setDetails(top)} exitDir={exitDir} />
+            <Card
+              key={top.lead.id}
+              card={top}
+              // AI is still working out this card's reasoning.
+              thinking={!aiOff && !top.insight.ai}
+              onSwipe={swipe}
+              onDetails={() => setDetails(top)}
+              exitDir={exitDir}
+            />
           ) : (
             <motion.div
               key="empty"
@@ -272,11 +283,13 @@ function RoundButton({
 
 function Card({
   card,
+  thinking,
   onSwipe,
   onDetails,
   exitDir,
 }: {
   card: CardData;
+  thinking: boolean;
   onSwipe: (d: Direction) => void;
   onDetails: () => void;
   exitDir: "left" | "right";
@@ -390,7 +403,7 @@ function Card({
         </div>
 
         {insight.tags.length > 0 && (
-          <div className="mt-2.5 flex h-7 flex-wrap gap-2 overflow-hidden [@media(max-height:720px)]:hidden">
+          <div className={`mt-2.5 flex h-7 flex-wrap gap-2 overflow-hidden [@media(max-height:720px)]:hidden ${insight.points.length ? "[@media(max-height:820px)]:hidden" : ""}`}>
             {insight.tags.slice(0, 4).map((t, i) => (
               <span
                 key={t}
@@ -410,10 +423,30 @@ function Card({
         >
           <span className="flex items-center gap-2 text-sm font-semibold text-violet-300">
             <Sparkles size={16} className="fill-violet-400" />
-            Why this lead?
-            <span className="ml-auto text-xs font-normal text-zinc-400">Read more ›</span>
+            {insight.points.length || thinking ? "How you could help" : "Why this lead?"}
+            <span className="ml-auto text-xs font-normal text-zinc-400">More ›</span>
           </span>
-          <span className="mt-1 line-clamp-2 block text-sm leading-snug text-zinc-300">{insight.why}</span>
+          {insight.points.length > 0 && (
+            <ul className="mt-1 space-y-0.5 text-sm leading-snug text-zinc-100">
+              {insight.points.map((p) => (
+                <li key={p} className="flex gap-1.5">
+                  <span className="text-violet-400">•</span>
+                  <span className="truncate">{p}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {thinking ? (
+            <span className="mt-1 flex animate-pulse items-center gap-2 text-sm leading-snug text-zinc-400" role="status">
+              Working out how you could help them…
+            </span>
+          ) : (
+            <span
+              className={`mt-1 text-sm leading-snug text-zinc-400 ${insight.points.length ? "line-clamp-2 [@media(max-height:720px)]:hidden" : "line-clamp-2 text-zinc-300"}`}
+            >
+              {insight.why}
+            </span>
+          )}
         </button>
 
         <div className="grid grid-cols-3 divide-x divide-white/10 pt-3">

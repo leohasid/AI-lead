@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { leadTheses } from "@/lib/ai";
-import { getProfile } from "@/lib/profile";
+import { leadTheses, type Thesis } from "@/lib/ai";
+import { formatThesis, getProfile } from "@/lib/profile";
 import { requireUser } from "@/lib/supabase/server";
 import type { Lead } from "@/lib/types";
 import { readWebsite } from "@/lib/website";
 
 export const maxDuration = 60;
 
-// "Why this lead?" for the next few cards in the deck: AI reads what each
-// business says about itself and argues what the user could do for them.
+// "Why this lead?" for the next few cards in the deck: AI works out how the
+// user's business could help each one (bullet points plus a one-line verdict).
 export async function POST(req: Request) {
   const { supabase, user } = await requireUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,16 +22,15 @@ export async function POST(req: Request) {
   const leads = (data ?? []) as Lead[];
   if (!leads.length) return NextResponse.json({ available: true, theses: {} });
 
-  const sites = await Promise.all(leads.map((l) => (l.company_domain ? readWebsite(l.company_domain) : null)));
+  const sites = await Promise.all(leads.map((l) => (l.company_domain ? readWebsite(l.company_domain, true) : null)));
   const briefs = leads.map((l, i) => ({
     id: l.id,
     name: l.company ?? [l.first_name, l.last_name].filter(Boolean).join(" "),
     type: l.industry,
-    location: l.location,
-    about: [sites[i]?.description, ...(sites[i]?.about ?? [])].filter(Boolean).join(" ").slice(0, 900) || null,
+    about: [sites[i]?.description, ...(sites[i]?.about ?? [])].filter(Boolean).join(" ").slice(0, 700) || null,
   }));
 
-  let theses: Record<string, string>;
+  let theses: Record<string, Thesis>;
   try {
     theses = await leadTheses(getProfile(user).business, briefs);
   } catch (e) {
@@ -41,6 +40,10 @@ export async function POST(req: Request) {
   }
 
   // Keep the reasoning with the lead so it's there next time without asking again.
-  await Promise.all(Object.entries(theses).map(([id, why]) => supabase.from("leads").update({ ai_summary: why }).eq("id", id)));
-  return NextResponse.json({ available: true, theses });
+  await Promise.all(Object.entries(theses).map(([id, t]) => supabase.from("leads").update({ ai_summary: formatThesis(t) }).eq("id", id)));
+  const match = { strong: "High", moderate: "Medium", weak: "Low" } as const;
+  return NextResponse.json({
+    available: true,
+    theses: Object.fromEntries(Object.entries(theses).map(([id, t]) => [id, { ...t, match: match[t.fit] }])),
+  });
 }

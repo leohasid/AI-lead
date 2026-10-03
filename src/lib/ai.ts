@@ -146,29 +146,31 @@ Use real OpenStreetMap values (lowercase, underscores). Include close variants a
     .slice(0, 8);
 }
 
-export type LeadBrief = { id: string; name: string; type: string | null; location: string | null; about: string | null };
+export type LeadBrief = { id: string; name: string; type: string | null; about: string | null };
+
+export type Thesis = { fit: "strong" | "moderate" | "weak"; points: string[]; summary: string };
 
 /**
  * "Why this lead?" for a handful of swipe cards: what the user's business could
- * actually do for each one. Returns the reasoning by lead id.
+ * do for each one, as quick bullet points plus a one-line verdict. By lead id.
  */
-export async function leadTheses(business: string, leads: LeadBrief[]): Promise<Record<string, string>> {
-  const { theses } = await jsonCall<{ theses: { id: string; why: string }[] }>(
-    `You help a business owner decide which prospects are worth contacting. For each prospect, write the case for (or against) reaching out, as the owner's sharp colleague would say it.
-- Base it on what the owner's business does and on what this specific prospect does: name one or two concrete things the owner could do for them, tied to how a business like theirs actually runs (its bookings, enquiries, admin, sales, staff, stock...).
-- Use the prospect's own description when it is given. Never invent facts about them: no made-up problems, numbers or tools. Say "likely" or "probably" for anything you are inferring from the kind of business it is.
-- If the fit is weak, say so plainly and say why, rather than stretching for a reason.
+export async function leadTheses(business: string, leads: LeadBrief[]): Promise<Record<string, Thesis>> {
+  const { theses } = await jsonCall<{ theses: ({ id: string } & Thesis)[] }>(
+    `You help a business owner decide, at a glance, which prospects are worth contacting. For each prospect, work out how the owner's business could help them. Do not describe the prospect or repeat what their website says; the owner can already see who they are.
+- fit: how well what the owner offers matches what this prospect likely needs: strong, moderate or weak.
+- points: 2 or 3 bullet points, each one specific thing the owner could do for this prospect, drawn from what the owner's business offers and how a business like the prospect's actually runs (its bookings, enquiries, admin, sales, staff, stock...). Each starts with a verb and must fit on one line of a phone screen: at most 6 words and 38 characters. No full stops.
+- summary: one sentence, at most 18 words: why the fit is what it is, and the best angle to open with. Don't restate the fit level.
+- Use the prospect's own description only to make the points specific. Never invent facts about them: no made-up problems, numbers or tools.
+- If the fit is weak, give fewer points and say so plainly in the summary rather than stretching.
 - Ratings, review counts, location and having a website are not reasons.
-- 2 sentences, at most 40 words, plain English, addressed to the owner as "you". No greeting, no sales language.`,
+- Plain English, addressed to the owner as "you". No sales language.`,
     `What the owner's business does:
 ${business}
 
 Prospects:
 ${leads
   .map((l) =>
-    [`id: ${l.id}`, `Name: ${l.name}`, l.type && `Type: ${l.type}`, l.location && `Location: ${l.location}`, l.about && `In their own words: ${l.about}`]
-      .filter(Boolean)
-      .join("\n"),
+    [`id: ${l.id}`, `Name: ${l.name}`, l.type && `Type: ${l.type}`, l.about && `In their own words: ${l.about}`].filter(Boolean).join("\n"),
   )
   .join("\n\n")}`,
     {
@@ -178,8 +180,13 @@ ${leads
           type: "array",
           items: {
             type: "object",
-            properties: { id: { type: "string" }, why: { type: "string" } },
-            required: ["id", "why"],
+            properties: {
+              id: { type: "string" },
+              fit: { type: "string", enum: ["strong", "moderate", "weak"] },
+              points: { type: "array", items: { type: "string" } },
+              summary: { type: "string" },
+            },
+            required: ["id", "fit", "points", "summary"],
             additionalProperties: false,
           },
         },
@@ -189,5 +196,9 @@ ${leads
     },
   );
   const ids = new Set(leads.map((l) => l.id));
-  return Object.fromEntries(theses.filter((t) => ids.has(t.id) && t.why.trim()).map((t) => [t.id, t.why.trim()]));
+  return Object.fromEntries(
+    theses
+      .filter((t) => ids.has(t.id) && t.summary.trim())
+      .map((t) => [t.id, { fit: t.fit, points: t.points.map((p) => p.trim()).filter(Boolean).slice(0, 3), summary: t.summary.trim() }]),
+  );
 }
