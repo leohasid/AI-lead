@@ -10,7 +10,8 @@ import type { LeadQuery } from "./sources";
 // not the people in it, so leads from here have no contact name.
 
 const UA = "LeadSwipe/0.1 (lead discovery; contact via app owner)";
-const AREA_KM = 10;
+const AREA_KM = 10; // the user's own area
+const CITY_KM = 5; // a big city's centre is dense, and a smaller search is much quicker
 const PAGE_SIZE = 40;
 
 type Coords = { lat: number; lon: number };
@@ -65,8 +66,8 @@ const OVERPASS = [
   "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ];
 
-async function queryOverpass({ lat, lon }: Coords, filters: TagFilter[], words: string[]): Promise<Element[]> {
-  const around = `(around:${AREA_KM * 1000},${lat},${lon})`;
+async function queryOverpass({ lat, lon }: Coords, km: number, filters: TagFilter[], words: string[]): Promise<Element[]> {
+  const around = `(around:${km * 1000},${lat},${lon})`;
   // Named, has a website, and not part of a chain ("brand" marks Tesco, Costa, etc).
   const base = `["name"]["website"][!"brand"]`;
   const clauses = filters.map((f) =>
@@ -120,11 +121,11 @@ async function queryOverpass({ lat, lon }: Coords, filters: TagFilter[], words: 
 // Paging re-reads the same area, so keep each search's result for a few minutes.
 const searches = new Map<string, { at: number; elements: Element[] }>();
 
-async function businessesAround(centre: Coords, filters: TagFilter[], words: string[]): Promise<Element[]> {
-  const key = JSON.stringify([centre.lat, centre.lon, filters, words]);
+async function businessesAround(centre: Coords, km: number, filters: TagFilter[], words: string[]): Promise<Element[]> {
+  const key = JSON.stringify([centre.lat, centre.lon, km, filters, words]);
   const cached = searches.get(key);
   if (cached && Date.now() - cached.at < 10 * 60_000) return cached.elements;
-  const elements = await queryOverpass(centre, filters, words);
+  const elements = await queryOverpass(centre, km, filters, words);
   searches.set(key, { at: Date.now(), elements });
   return elements;
 }
@@ -179,16 +180,18 @@ export async function searchOsm(query: LeadQuery): Promise<LeadDraft[]> {
   let centre: Coords = home;
   let area = town;
   let page = query.page;
+  let km = AREA_KM;
   const elsewhere = (CITIES[home.country] ?? []).filter(([, lat, lon]) => distanceKm(home, { lat, lon }) > AREA_KM * 2);
   if (!query.location && elsewhere.length) {
     const [name, lat, lon] = elsewhere[(query.page - 1) % elsewhere.length];
     centre = { lat, lon };
     area = name;
+    km = CITY_KM;
     page = Math.floor((query.page - 1) / elsewhere.length) + 1;
   }
 
   const words = [...new Set(stems(query.keywords ?? ""))].slice(0, 8);
-  const elements = await businessesAround(centre, query.filters, words);
+  const elements = await businessesAround(centre, km, query.filters, words);
 
   const seen = new Set<string>();
   const found = elements.flatMap((el) => {
