@@ -127,7 +127,7 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
 
   return (
     <div className="flex w-full max-w-md flex-col items-center">
-      <div className="relative h-[clamp(330px,calc(100dvh-330px),560px)] w-full">
+      <div className="relative h-[clamp(400px,calc(100dvh-330px),580px)] [@media(max-height:720px)]:h-[clamp(360px,calc(100dvh-300px),580px)] w-full">
         {/* Stacked cards peeking out behind the top one */}
         {cards.length > 1 && (
           <>
@@ -157,30 +157,30 @@ export default function SwipeDeck({ reach, initialCards }: { reach: Reach; initi
       </div>
 
       <div className="mt-5 flex items-center gap-5 [@media(max-height:720px)]:mt-3">
-        <RoundButton onClick={undo} disabled={!lastSkipped} label="Undo last skip" className="h-14 w-14 border-white/15 text-zinc-300">
+        <RoundButton onClick={undo} disabled={!lastSkipped} label="Undo last skip" className="h-14 w-14 [@media(max-height:720px)]:h-12 [@media(max-height:720px)]:w-12 border-white/15 text-zinc-300">
           <Undo2 size={24} />
         </RoundButton>
         <RoundButton
           onClick={() => swipe("left")}
           disabled={!top}
           label="No"
-          className="h-[72px] w-[72px] border-rose-500/70 bg-rose-500/10 text-rose-500 shadow-[0_0_30px_-8px] shadow-rose-500/60"
+          className="h-[72px] w-[72px] [@media(max-height:720px)]:h-14 [@media(max-height:720px)]:w-14 border-rose-500/70 bg-rose-500/10 text-rose-500 shadow-[0_0_30px_-8px] shadow-rose-500/60"
         >
-          <X size={40} strokeWidth={3} />
+          <X size={34} strokeWidth={3} />
         </RoundButton>
         <RoundButton
           onClick={() => swipe("right")}
           disabled={!top}
           label="Yes"
-          className="h-[72px] w-[72px] border-emerald-400/70 bg-emerald-500/10 text-emerald-400 shadow-[0_0_30px_-8px] shadow-emerald-400/60"
+          className="h-[72px] w-[72px] [@media(max-height:720px)]:h-14 [@media(max-height:720px)]:w-14 border-emerald-400/70 bg-emerald-500/10 text-emerald-400 shadow-[0_0_30px_-8px] shadow-emerald-400/60"
         >
-          <Heart size={38} className="fill-emerald-400" />
+          <Heart size={32} className="fill-emerald-400" />
         </RoundButton>
         <RoundButton
           onClick={() => swipe("super")}
           disabled={!top}
           label="Yes, and send the email straight away"
-          className="h-14 w-14 border-violet-500/60 bg-violet-500/10 text-fuchsia-400"
+          className="h-14 w-14 [@media(max-height:720px)]:h-12 [@media(max-height:720px)]:w-12 border-violet-500/60 bg-violet-500/10 text-fuchsia-400"
         >
           <Sparkles size={24} className="fill-fuchsia-400" />
         </RoundButton>
@@ -285,11 +285,11 @@ function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Directi
         NO
       </motion.div>
 
-      {/* Hero: badges sit in their own row so they never cover the initials */}
-      <div className={`relative flex h-[38%] shrink-0 flex-col [@media(max-height:720px)]:h-auto bg-gradient-to-br ${scene(lead.industry ?? name)}`}>
+      {/* Hero: takes whatever height the details don't need, so the details are never cut off */}
+      <div className={`relative flex min-h-0 flex-1 flex-col bg-gradient-to-br ${scene(lead.industry ?? name)}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.25),transparent_55%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#14112a] to-transparent" />
-        <div className="relative flex items-start justify-between gap-2 p-4 [@media(max-height:720px)]:p-3">
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#14112a] to-transparent" />
+        <div className="relative flex shrink-0 items-start justify-between gap-2 p-3">
           <span className="flex shrink-0 items-center gap-2 rounded-full border border-emerald-400/40 bg-black/50 px-3 py-1.5 text-sm font-medium backdrop-blur">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
             New Lead
@@ -301,34 +301,38 @@ function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Directi
             </span>
           )}
         </div>
-        <div className="relative flex min-h-0 flex-1 items-center justify-center pb-4 [@media(max-height:720px)]:pb-1">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-white/95 text-3xl font-bold text-violet-700 shadow-xl [@media(max-height:720px)]:h-14 [@media(max-height:720px)]:w-14 [@media(max-height:720px)]:rounded-2xl [@media(max-height:720px)]:text-xl">
+        {/* The initials box scales with the space left over, down to nothing on small screens. */}
+        <div className="relative flex min-h-0 flex-1 items-center justify-center [container-type:size]">
+          <div
+            className="flex items-center justify-center overflow-hidden rounded-[22%] bg-white/95 font-bold text-violet-700 shadow-xl"
+            style={{ width: "min(6rem, 86cqh)", height: "min(6rem, 86cqh)", fontSize: "min(1.875rem, 34cqh)" }}
+          >
             {initials || "?"}
           </div>
         </div>
       </div>
 
-      {/* Details */}
-      <div className="flex flex-1 flex-col px-5 pb-4 [@media(max-height:720px)]:pb-3">
-        <h2 className="truncate text-[28px] font-bold leading-tight [@media(max-height:720px)]:text-2xl">{name}</h2>
-        {contact && <p className="mt-1 text-zinc-300">{contact}</p>}
-        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-300 [@media(max-height:720px)]:mt-1">
+      {/* Details: always shown in full */}
+      <div className="flex shrink-0 flex-col px-5 pb-4 pt-1">
+        <h2 className="truncate text-[26px] font-bold leading-tight">{name}</h2>
+        {contact && <p className="mt-0.5 truncate text-zinc-300">{contact}</p>}
+        <div className="mt-1.5 space-y-1 text-sm text-zinc-300">
           {lead.location && (
-            <span className="flex items-center gap-1.5">
-              <MapPin size={16} className="text-zinc-400" />
-              {lead.location}
-            </span>
+            <p className="flex items-center gap-1.5">
+              <MapPin size={16} className="shrink-0 text-zinc-400" />
+              <span className="truncate">{lead.location}</span>
+            </p>
           )}
           {lead.company_domain && (
-            <span className="flex items-center gap-1.5">
-              <Globe size={16} className="text-zinc-400" />
-              {lead.company_domain}
-            </span>
+            <p className="flex items-center gap-1.5">
+              <Globe size={16} className="shrink-0 text-zinc-400" />
+              <span className="truncate">{lead.company_domain}</span>
+            </p>
           )}
-        </p>
+        </div>
 
         {insight.tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2 [@media(max-height:720px)]:hidden">
+          <div className="mt-2.5 flex h-7 flex-wrap gap-2 overflow-hidden [@media(max-height:720px)]:hidden">
             {insight.tags.slice(0, 4).map((t, i) => (
               <span
                 key={t}
@@ -340,15 +344,15 @@ function Card({ card, onSwipe, exitDir }: { card: CardData; onSwipe: (d: Directi
           </div>
         )}
 
-        <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 [@media(max-height:720px)]:mt-2 [@media(max-height:720px)]:py-2">
+        <div className="mt-2.5 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <div className="flex items-center gap-2 text-sm font-semibold text-violet-300">
             <Sparkles size={16} className="fill-violet-400" />
             Why this lead?
           </div>
-          <p className="mt-1 line-clamp-2 text-sm leading-snug text-zinc-300 [@media(max-height:720px)]:line-clamp-1">{insight.why}</p>
+          <p className="mt-1 line-clamp-2 text-sm leading-snug text-zinc-300">{insight.why}</p>
         </div>
 
-        <div className="mt-auto grid shrink-0 grid-cols-3 divide-x divide-white/10 pt-3 [@media(max-height:720px)]:pt-2">
+        <div className="grid grid-cols-3 divide-x divide-white/10 pt-3">
           <Stat Icon={Target} label="Match" value={insight.match} valueClass={matchColour} iconClass="text-emerald-400" />
           <Stat Icon={Clock} label="Added" value={timeAgo(lead.created_at)} />
           <Stat Icon={FileText} label="Source" value={insight.source} />
@@ -373,13 +377,13 @@ function Stat({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-1.5 px-1.5 first:pl-0 last:pr-0">
-      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 ${iconClass}`}>
-        <Icon size={16} />
+      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 ${iconClass}`}>
+        <Icon size={14} />
       </span>
       <span className="min-w-0 leading-tight">
         <span className="block text-[11px] text-zinc-400">{label}</span>
         {/* "Added" is relative to now, so server and browser can differ by a minute. */}
-        <span suppressHydrationWarning className={`block truncate text-sm font-medium ${valueClass}`}>
+        <span suppressHydrationWarning className={`block truncate text-[13px] font-medium ${valueClass}`}>
           {value}
         </span>
       </span>

@@ -111,7 +111,7 @@ export function leadInsight(lead: Lead, profile: Profile): Insight {
     targetHits.length > 0 && `Matches what you're targeting (${[...new Set(targetHits)].join(", ")})`,
     decisionMaker && `${contact || "The contact"} is the ${lead.title}, so they can say yes`,
     local && "Close to you",
-    lead.email && "Lists a public contact email, so you can reach them straight away",
+    lead.email && "Has a public email you can contact",
   ].filter(Boolean) as string[];
   const why = reasons.length
     ? `${reasons.join(". ")}.`
