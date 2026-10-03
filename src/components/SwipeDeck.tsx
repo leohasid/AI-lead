@@ -429,9 +429,7 @@ function Card({
           <span className="flex items-center gap-2 text-sm font-semibold text-violet-300">
             <Sparkles size={16} className="fill-violet-400" />
             {insight.points.length || thinking ? "How you could help" : "Why this lead?"}
-            <span className="ml-auto rounded-full border border-violet-400/50 bg-violet-500/15 px-2.5 py-0.5 text-xs font-medium text-violet-100">
-              View more
-            </span>
+            <span className="ml-auto text-xs font-normal text-zinc-400">More ›</span>
           </span>
           {insight.points.length > 0 && (
             <ul className="mt-1 space-y-0.5 text-[13px] leading-snug text-zinc-100">
